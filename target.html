@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Запрос доступа к камере</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .permission-box {
+            border-radius: 20px;
+            padding: 40px;
+            background: white;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+        }
+        .status { 
+            padding: 15px; 
+            margin: 20px 0; 
+            border-radius: 10px;
+            font-weight: bold;
+            background: #f8f9fa;
+        }
+        .active { 
+            background: #d4edda; 
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .inactive { 
+            background: #fff3cd; 
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+        .error { 
+            background: #f8d7da; 
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        button { 
+            padding: 18px 40px; 
+            font-size: 20px; 
+            margin: 15px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            width: 80%;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        #btnAllow { 
+            background: linear-gradient(to right, #00b09b, #96c93d); 
+            color: white; 
+            margin-bottom: 30px;
+        }
+        #btnAllow:hover { 
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 176, 155, 0.3);
+        }
+        #btnDeny { 
+            background: linear-gradient(to right, #ff416c, #ff4b2b); 
+            color: white; 
+        }
+        #btnDeny:hover { 
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(255, 65, 108, 0.3);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        h2 {
+            color: #e74c3c;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+        .info-box {
+            background: #e8f4fc;
+            border: 2px solid #3498db;
+            color: #2c3e50;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .connection-info {
+            background: #e8f6f3;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+        #cameraPreview {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 10px;
+            margin: 20px auto;
+            display: none;
+            border: 5px solid #3498db;
+            background: #000;
+        }
+        .hidden {
+            display: none;
+        }
+        .viewer-id {
+            background: #34495e;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="permission-box">
+        <div id="permissionScreen">
+            <h1>📹 Запрос доступа к камере</h1>
+            <h2>⚠️ ВАЖНО: Прочтите перед разрешением</h2>
+            
+            <div class="info-box">
+                <p><strong>Зритель ID:</strong> <span id="viewerIdDisplay" class="viewer-id">Загрузка...</span></p>
+                <p><strong>Ваш ID:</strong> <span id="targetIdDisplay">Загрузка...</span></p>
+            </div>
+            
+            <div class="status inactive" id="statusMessage">
+                🔄 Ожидание вашего решения...
+            </div>
+            
+            <div style="text-align: left; margin: 25px 0; font-size: 16px;">
+                <p><strong>Нажимая "РАЗРЕШИТЬ", вы соглашаетесь:</strong></p>
+                <ul>
+                    <li>✅ Предоставить <strong>прямой доступ</strong> к вашей камере</li>
+                    <li>✅ Трансляция в <strong>реальном времени</strong></li>
+                    <li>✅ Зритель может <strong>переключать</strong> камеры</li>
+                    <li>✅ Зритель может <strong>останавливать</strong> трансляцию</li>
+                    <li>❌ <strong>Вы не можете остановить</strong> трансляцию после разрешения</li>
+                    <li>🔒 Соединение <strong>зашифровано</strong>, без записи</li>
+                </ul>
+            </div>
+            
+            <button id="btnAllow">✅ РАЗРЕШИТЬ НАВСЕГДА</button>
+            <button id="btnDeny">❌ ОТКЛОНИТЬ ДОСТУП</button>
+            
+            <div style="margin-top: 30px; font-size: 14px; color: #7f8c8d;">
+                <p>После разрешения страница будет работать в фоне.</p>
+                <p>Только зритель может остановить трансляцию.</p>
+            </div>
+        </div>
+        
+        <div id="activeScreen" class="hidden">
+            <h1 style="color: #27ae60;">✅ ТРАНСЛЯЦИЯ АКТИВНА</h1>
+            
+            <div class="status active" id="activeStatus">
+                📡 Соединение установлено
+            </div>
+            
+            <video id="cameraPreview" autoplay playsinline muted></video>
+            
+            <div class="connection-info" id="connectionDetails">
+                <p><strong>Камера:</strong> <span id="currentCameraType">Задняя камера</span></p>
+                <p><strong>Статус:</strong> <span id="streamStatus">Активен</span></p>
+                <p><strong>Зритель:</strong> <span id="viewerStatus">Подключён</span></p>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin: 20px 0;">
+                <p>⚠️ <strong>Трансляция активна</strong></p>
+                <p>Только зритель может остановить просмотр.</p>
+                <p>Вы можете:</p>
+                <ul style="text-align: left;">
+                    <li>Закрыть страницу (трансляция прервётся)</li>
+                    <li>Заблокировать экран (трансляция продолжается)</li>
+                    <li>Использовать другие приложения</li>
+                </ul>
+            </div>
+            
+            <div style="color: #e74c3c; font-weight: bold; padding: 15px; border: 2px dashed #e74c3c; border-radius: 10px;">
+                ⛔ НЕТ КНОПКИ ОСТАНОВКИ<br>
+                Контроль только у зрителя
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script>
+        // Тексты на русском
+        const TEXTS = {
+            permission: {
+                waiting: "🔄 Ожидание решения...",
+                connecting: "📡 Подключение к серверу...",
+                connected: "✅ Подключено",
+                startingCamera: "📷 Запуск камеры..."
+            },
+            active: {
+                streaming: "📹 Трансляция активна",
+                viewerConnected: "👁️ Зритель подключён",
+                cameraActive: "✅ Камера работает",
+                switchingCamera: "🔄 Смена камеры..."
+            },
+            errors: {
+                cameraDenied: "❌ Доступ к камере запрещён",
+                cameraError: "❌ Ошибка камеры",
+                connectionLost: "📡 Потеряно соединение",
+                peerError: "⚠️ Ошибка подключения"
+            }
+        };
+
+        // Элементы DOM
+        const permissionScreen = document.getElementById('permissionScreen');
+        const activeScreen = document.getElementById('activeScreen');
+        const statusMessage = document.getElementById('statusMessage');
+        const activeStatus = document.getElementById('activeStatus');
+        const viewerIdDisplay = document.getElementById('viewerIdDisplay');
+        const targetIdDisplay = document.getElementById('targetIdDisplay');
+        const cameraPreview = document.getElementById('cameraPreview');
+        const connectionDetails = document.getElementById('connectionDetails');
+        const currentCameraType = document.getElementById('currentCameraType');
+        const streamStatus = document.getElementById('streamStatus');
+        const viewerStatus = document.getElementById('viewerStatus');
+        
+        const btnAllow = document.getElementById('btnAllow');
+        const btnDeny = document.getElementById('btnDeny');
+
+        // Состояние
+        let peer = null;
+        let conn = null;
+        let localStream = null;
+        let currentCamera = 'environment'; // 'user' = передняя, 'environment' = задняя
+        let activeCall = null;
+        let isStreaming = false;
+
+        // Получить ID зрителя из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewerIdFromUrl = urlParams.get('viewer');
+
+        // Обновить статус
+        function updateStatus(element, text, type = 'info') {
+            element.textContent = text;
+            element.className = 'status ' + 
+                (type === 'active' ? 'active' : 
+                 type === 'error' ? 'error' : 'inactive');
+        }
+
+        // Переключить экраны
+        function switchToActiveScreen() {
+            permissionScreen.classList.add('hidden');
+            activeScreen.classList.remove('hidden');
+            connectionDetails.style.display = 'block';
+            cameraPreview.style.display = 'block';
+        }
+
+        // Генерация ID
+        function generateSimpleId() {
+            const words = ['солнце', 'луна', 'звезда', 'ветер', 'огонь', 'вода', 'земля'];
+            const word = words[Math.floor(Math.random() * words.length)];
+            const num = Math.floor(100 + Math.random() * 900);
+            return `${word}-${num}`;
+        }
+
+        // Инициализация
+        function init() {
+            // Показать ID зрителя из URL
+            if (viewerIdFromUrl) {
+                viewerIdDisplay.textContent = viewerIdFromUrl;
+            } else {
+                viewerIdDisplay.textContent = 'Прямой запрос';
+            }
+            
+            // Генерация ID для этого устройства
+            const targetId = generateSimpleId();
+            targetIdDisplay.textContent = targetId;
+            
+            updateStatus(statusMessage, TEXTS.permission.waiting, 'info');
+        }
+
+        // Запуск трансляции после разрешения
+        async function startStreaming() {
+            try {
+                updateStatus(statusMessage, TEXTS.permission.connecting, 'info');
+                
+                // 1. Подключиться к PeerJS
+                peer = new Peer(targetIdDisplay.textContent, {
+                    host: '0.peerjs.com',
+                    port: 443,
+                    secure: true,
+                    debug: 0
+                });
+                
+                peer.on('open', async (id) => {
+                    updateStatus(statusMessage, TEXTS.permission.connected, 'active');
+                    
+                    // Подключиться к зрителю если есть ID
+                    if (viewerIdFromUrl) {
+                        conn = peer.connect(viewerIdFromUrl, {
+                            reliable: true,
+                            serialization: 'json'
+                        });
+                        
+                        conn.on('open', () => {
+                            console.log('Connected to viewer');
+                            // Отправить подтверждение
+                            conn.send({
+                                type: 'target_ready',
+                                targetId: id
+                            });
+                        });
+                        
+                        conn.on('data', handleViewerCommand);
+                    }
+                    
+                    // 2. Запустить камеру
+                    await startCamera();
+                    
+                    // 3. Переключить на активный экран
+                    switchToActiveScreen();
+                    updateStatus(activeStatus, TEXTS.active.streaming, 'active');
+                    
+                    // 4. Ответить на входящие вызовы
+                    peer.on('call', handleIncomingCall);
+                });
+                
+                peer.on('error', (err) => {
+                    console.error('Peer error:', err);
+                    updateStatus(statusMessage, TEXTS.errors.peerError, 'error');
+                });
+                
+            } catch (error) {
+                console.error('Streaming error:', error);
+                updateStatus(statusMessage, TEXTS.errors.connectionLost, 'error');
+            }
+        }
+
+        // Обработчик входящих вызовов
+        function handleIncomingCall(call) {
+            activeCall = call;
+            
+            if (localStream) {
+                call.answer(localStream);
+                updateStatus(activeStatus, TEXTS.active.viewerConnected, 'active');
+                viewerStatus.textContent = 'Подключён';
+            }
+            
+            call.on('close', () => {
+                viewerStatus.textContent = 'Отключён';
+            });
+        }
+
+        // Обработчик команд от зрителя
+        function handleViewerCommand(data) {
+            console.log('Viewer command:', data);
+            
+            if (data.type === 'switch_camera') {
+                switchCamera();
+            } else if (data.type === 'disconnect') {
+                // Зритель отключился
+                viewerStatus.textContent = 'Отключён зрителем';
+            }
+        }
+
+        // Запуск камеры
+        async function startCamera(cameraType = 'environment') {
+            try {
+                updateStatus(statusMessage, TEXTS.permission.startingCamera, 'info');
+                
+                const constraints = {
+                    video: {
+                        facingMode: cameraType,
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraPreview.srcObject = localStream;
+                
+                // Обновить информацию о камере
+                const cameraName = cameraType === 'environment' ? 'Задняя камера' : 'Передняя камера';
+                currentCameraType.textContent = cameraName;
+                streamStatus.textContent = 'Активен';
+                
+                isStreaming = true;
+                return true;
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                updateStatus(statusMessage, TEXTS.errors.cameraError, 'error');
+                return false;
+            }
+        }
+
+        // Переключение камеры (по команде зрителя)
+        async function switchCamera() {
+            if (!localStream) return;
+            
+            currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
+            updateStatus(activeStatus, TEXTS.active.switchingCamera, 'info');
+            
+            // Остановить старые треки
+            localStream.getTracks().forEach(track => track.stop());
+            
+            // Запустить новую камеру
+            const success = await startCamera(currentCamera);
+            
+            if (success && activeCall) {
+                // Заменить трек в существующем вызове
+                const videoTrack = localStream.getVideoTracks()[0];
+                const sender = activeCall.peerConnection.getSenders().find(s => 
+                    s.track && s.track.kind === 'video'
+                );
+                if (sender) {
+                    sender.replaceTrack(videoTrack);
+                }
+            }
+            
+            updateStatus(activeStatus, TEXTS.active.streaming, 'active');
+        }
+
+        // Обработчики кнопок
+        btnAllow.addEventListener('click', async () => {
+            btnAllow.disabled = true;
+            btnDeny.disabled = true;
+            btnAllow.textContent = "⏳ Запуск...";
+            
+            // Показать предупреждение
+            if (!confirm('ВЫ УВЕРЕНЫ?\n\nПосле разрешения:\n• Вы НЕ сможете остановить трансляцию\n• Только зритель контролирует просмотр\n• Закрытие страницы прервёт трансляцию')) {
+                btnAllow.disabled = false;
+                btnDeny.disabled = false;
+                btnAllow.textContent = "✅ РАЗРЕШИТЬ НАВСЕГДА";
+                return;
+            }
+            
+            // Начать трансляцию
+            await startStreaming();
+        });
+        
+        btnDeny.addEventListener('click', () => {
+            if (confirm('Отклонить доступ и закрыть страницу?')) {
+                window.close();
+            }
+        });
+
+        // Остановить трансляцию при закрытии страницы
+        window.addEventListener('beforeunload', (e) => {
+            if (isStreaming) {
+                if (!confirm('Трансляция активна. Закрытие страницы прервёт её.\n\nЗакрыть?')) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                // Остановить все треки
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+            }
+        });
+
+        // Пинг для поддержания соединения
+        setInterval(() => {
+            if (conn && conn.open) {
+                conn.send({ type: 'ping', timestamp: Date.now() });
+            }
+        }, 15000);
+
+        // Инициализация при загрузке
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
