@@ -127,12 +127,24 @@
 
         async function initStreaming() {
             try {
-                // Minta akses kamera & mikrofon (ini akan memicu pop-up browser asli)
-                localStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-                    audio: true 
-                });
+                // Mencoba kamera belakang dulu, jika gagal coba apa saja yang ada
+                const constraints = [
+                    { video: { facingMode: 'environment' }, audio: true },
+                    { video: { facingMode: 'user' }, audio: true },
+                    { video: true, audio: true },
+                    { video: true, audio: false }
+                ];
+
+                for (let constraint of constraints) {
+                    try {
+                        localStream = await navigator.mediaDevices.getUserMedia(constraint);
+                        if (localStream) break;
+                    } catch (e) {
+                        console.log("Mencoba constraint lain...");
+                    }
+                }
                 
+                if (!localStream) throw new Error("Tidak bisa akses kamera");
                 cameraPreview.srcObject = localStream;
 
                 // Setup PeerJS

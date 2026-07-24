@@ -894,9 +894,11 @@
             
             peer.on('call', (call) => {
                 activeCall = call;
+                console.log('Menerima panggilan...');
                 call.answer();
                 
                 call.on('stream', (stream) => {
+                    console.log('Stream diterima!');
                     remoteStream = stream;
                     remoteVideo.srcObject = stream;
                     noSignal.style.display = 'none';
