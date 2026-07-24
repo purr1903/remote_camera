@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Camera Controller - Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #00b4db, #0083b0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .video-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .control-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+        
+        #remoteVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .no-signal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #666;
+            font-size: 1.2em;
+        }
+        
+        .camera-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .recording-indicator {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 0, 0, 0.8);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            animation: pulse 1s infinite;
+        }
+        
+        .recording-indicator.active {
+            display: flex;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:active:not(:disabled) {
+            transform: translateY(1px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        #btnStart {
+            background: linear-gradient(to right, #00b09b, #96c93d);
+            color: white;
+        }
+        
+        #btnStop {
+            background: linear-gradient(to right, #ff416c, #ff4b2b);
+            color: white;
+        }
+        
+        #btnSwitchCam {
+            background: linear-gradient(to right, #8e2de2, #4a00e0);
+            color: white;
+        }
+        
+        #btnRecord {
+            background: linear-gradient(to right, #ff6b6b, #ee5a6f);
+            color: white;
+        }
+        
+        #btnSnapshot {
+            background: linear-gradient(to right, #ffa502, #ffb84d);
+            color: white;
+        }
+        
+        #btnCopyLink {
+            background: linear-gradient(to right, #f7971e, #ffd200);
+            color: black;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4757;
+        }
+        
+        .status-dot.active {
+            background: #2ed573;
+            animation: pulse 2s infinite;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .info-box {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .info-box h3 {
+            margin-bottom: 12px;
+            color: #00b4db;
+            font-size: 0.95em;
+        }
+        
+        .info-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 3px solid #00b4db;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+        }
+        
+        .info-label {
+            color: #aaa;
+            font-size: 0.8em;
+            margin-bottom: 3px;
+        }
+        
+        .info-value {
+            font-weight: bold;
+            word-break: break-all;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .stat-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.85em;
+        }
+        
+        .stat-label {
+            color: #aaa;
+            font-size: 0.75em;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-weight: bold;
+            color: #00b4db;
+        }
+        
+        #connectionLink {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.8em;
+            word-break: break-all;
+            border: 1px dashed #444;
+            margin: 10px 0;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            border-left: 5px solid #00b4db;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.show {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: rgba(0, 0, 0, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px solid #00b4db;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal-content h2 {
+            margin-bottom: 20px;
+            color: #00b4db;
+        }
+        
+        .modal-content p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .modal-buttons button {
+            padding: 12px;
+            font-size: 14px;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .controls {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            button {
+                padding: 12px;
+                font-size: 12px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎥 Remote Camera Controller - Enhanced</h1>
+            <p>Advanced streaming with recording, snapshots & monitoring</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="video-section">
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Disconnected</span>
+                </div>
+                
+                <div class="control-panel">
+                    <div class="controls">
+                        <button id="btnStart">
+                            <span>▶️</span> START
+                        </button>
+                        <button id="btnStop" disabled>
+                            <span>⏹️</span> STOP
+                        </button>
+                        <button id="btnSwitchCam" disabled>
+                            <span>🔄</span> SWITCH
+                        </button>
+                        <button id="btnRecord" disabled>
+                            <span>⏺️</span> RECORD
+                        </button>
+                        <button id="btnSnapshot" disabled>
+                            <span>📷</span> SNAPSHOT
+                        </button>
+                        <button id="btnCopyLink">
+                            <span>🔗</span> COPY LINK
+                        </button>
+                    </div>
+                    
+                    <div id="linkSection" style="display: none;">
+                        <p style="font-size: 0.9em; margin-bottom: 8px;">Send this link to target:</p>
+                        <div id="connectionLink">Generating link...</div>
+                    </div>
+                </div>
+                
+                <div class="video-container">
+                    <video id="remoteVideo" autoplay playsinline></video>
+                    <div class="no-signal" id="noSignal">
+                        📹 NO SIGNAL<br>
+                        <small>Start stream to view camera</small>
+                    </div>
+                    <div class="camera-badge" id="cameraBadge" style="display: none;">
+                        📷 <span id="cameraType">Back Camera</span>
+                    </div>
+                    <div class="recording-indicator" id="recordingIndicator">
+                        🔴 REC
+                    </div>
+                </div>
+            </div>
+            
+            <div class="sidebar">
+                <div class="info-box">
+                    <h3>📊 Stream Info</h3>
+                    <div class="info-item">
+                        <div class="info-label">Your ID</div>
+                        <div class="info-value" id="viewerIdValue">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Target ID</div>
+                        <div class="info-value" id="targetIdValue">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Status</div>
+                        <div class="info-value" id="connectionStatus">Disconnected</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Duration</div>
+                        <div class="info-value" id="streamDuration">00:00:00</div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <h3>📈 Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-label">FPS</div>
+                            <div class="stat-value" id="statFps">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Bandwidth</div>
+                            <div class="stat-value" id="statBandwidth">0 Mbps</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Resolution</div>
+                            <div class="stat-value" id="statResolution">-</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Codec</div>
+                            <div class="stat-value" id="statCodec">-</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <h3>💾 Recording</h3>
+                    <div class="info-item">
+                        <div class="info-label">Status</div>
+                        <div class="info-value" id="recordingStatus">Idle</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Duration</div>
+                        <div class="info-value" id="recordingDuration">00:00:00</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Size</div>
+                        <div class="info-value" id="recordingSize">0 MB</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="notification" id="notification">
+        <div id="notificationText"></div>
+    </div>
+    
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <h2>⚙️ Recording Settings</h2>
+            <div>
+                <label style="display: block; margin-bottom: 10px;">
+                    <input type="checkbox" id="recordAudio" checked> Include Audio
+                </label>
+                <label style="display: block; margin-bottom: 10px;">
+                    <input type="checkbox" id="recordWithTimestamp" checked> Add Timestamp
+                </label>
+                <label style="display: block; margin-bottom: 10px;">
+                    Quality: 
+                    <select id="recordQuality" style="margin-left: 10px; padding: 5px;">
+                        <option value="high">High (1080p)</option>
+                        <option value="medium" selected>Medium (720p)</option>
+                        <option value="low">Low (480p)</option>
+                    </select>
+                </label>
+            </div>
+            <div class="modal-buttons">
+                <button id="btnSettingsOk" style="background: linear-gradient(to right, #00b09b, #96c93d); color: white;">OK</button>
+                <button id="btnSettingsCancel" style="background: linear-gradient(to right, #666, #999); color: white;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script>
+        // ==================== STATE VARIABLES ====================
+        let peer = null;
+        let conn = null;
+        let activeCall = null;
+        let remoteStream = null;
+        let viewerId = null;
+        let targetId = null;
+        let streamStartTime = null;
+        let streamTimer = null;
+        let currentCameraType = 'back';
+        
+        // Recording variables
+        let isRecording = false;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let recordStartTime = null;
+        let recordTimer = null;
+        let recordedBytes = 0;
+        
+        // Statistics variables
+        let statsInterval = null;
+        let frameCount = 0;
+        let lastStatsTime = Date.now();
+        let bytesReceived = 0;
+        let lastBytesReceived = 0;
+        
+        // ==================== DOM ELEMENTS ====================
+        const remoteVideo = document.getElementById('remoteVideo');
+        const noSignal = document.getElementById('noSignal');
+        const cameraBadge = document.getElementById('cameraBadge');
+        const cameraTypeSpan = document.getElementById('cameraType');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const viewerIdValue = document.getElementById('viewerIdValue');
+        const targetIdValue = document.getElementById('targetIdValue');
+        const connectionStatus = document.getElementById('connectionStatus');
+        const streamDuration = document.getElementById('streamDuration');
+        const connectionLink = document.getElementById('connectionLink');
+        const linkSection = document.getElementById('linkSection');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notificationText');
+        const recordingIndicator = document.getElementById('recordingIndicator');
+        const recordingStatus = document.getElementById('recordingStatus');
+        const recordingDuration = document.getElementById('recordingDuration');
+        const recordingSize = document.getElementById('recordingSize');
+        
+        // Statistics elements
+        const statFps = document.getElementById('statFps');
+        const statBandwidth = document.getElementById('statBandwidth');
+        const statResolution = document.getElementById('statResolution');
+        const statCodec = document.getElementById('statCodec');
+        
+        // Buttons
+        const btnStart = document.getElementById('btnStart');
+        const btnStop = document.getElementById('btnStop');
+        const btnSwitchCam = document.getElementById('btnSwitchCam');
+        const btnRecord = document.getElementById('btnRecord');
+        const btnSnapshot = document.getElementById('btnSnapshot');
+        const btnCopyLink = document.getElementById('btnCopyLink');
+        
+        // Modal elements
+        const settingsModal = document.getElementById('settingsModal');
+        const recordAudio = document.getElementById('recordAudio');
+        const recordWithTimestamp = document.getElementById('recordWithTimestamp');
+        const recordQuality = document.getElementById('recordQuality');
+        const btnSettingsOk = document.getElementById('btnSettingsOk');
+        const btnSettingsCancel = document.getElementById('btnSettingsCancel');
+        
+        // ==================== PEERJS CONFIGURATION ====================
+        const PEER_CONFIG = {
+            host: '0.peerjs.com',
+            port: 443,
+            secure: true,
+            pingInterval: 5000
+        };
+        
+        // ==================== UTILITY FUNCTIONS ====================
+        function generateViewerId() {
+            const adjectives = ['silent', 'hidden', 'remote', 'digital', 'virtual', 'swift', 'bright'];
+            const nouns = ['observer', 'watcher', 'viewer', 'monitor', 'controller', 'guardian'];
+            const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+            const noun = nouns[Math.floor(Math.random() * nouns.length)];
+            const num = Math.floor(1000 + Math.random() * 9000);
+            return `${adj}-${noun}-${num}`;
+        }
+        
+        function showNotification(message, duration = 3000) {
+            notificationText.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, duration);
+        }
+        
+        function updateStatus(status, isConnected = false) {
+            statusText.textContent = status;
+            connectionStatus.textContent = status;
+            statusDot.className = 'status-dot' + (isConnected ? ' active' : '');
+        }
+        
+        function updateStreamTimer() {
+            if (!streamStartTime) return;
+            
+            const now = new Date();
+            const diff = Math.floor((now - streamStartTime) / 1000);
+            
+            const hours = Math.floor(diff / 3600);
+            const minutes = Math.floor((diff % 3600) / 60);
+            const seconds = diff % 60;
+            
+            streamDuration.textContent = 
+                `${hours.toString().padStart(2, '0')}:` +
+                `${minutes.toString().padStart(2, '0')}:` +
+                `${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function updateRecordingTimer() {
+            if (!recordStartTime) return;
+            
+            const now = new Date();
+            const diff = Math.floor((now - recordStartTime) / 1000);
+            
+            const hours = Math.floor(diff / 3600);
+            const minutes = Math.floor((diff % 3600) / 60);
+            const seconds = diff % 60;
+            
+            recordingDuration.textContent = 
+                `${hours.toString().padStart(2, '0')}:` +
+                `${minutes.toString().padStart(2, '0')}:` +
+                `${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 MB';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        }
+        
+        // ==================== RECORDING FUNCTIONS ====================
+        function startRecording() {
+            if (!remoteStream) {
+                showNotification('No stream to record', 3000);
+                return;
+            }
+            
+            recordedChunks = [];
+            recordedBytes = 0;
+            
+            try {
+                const options = {
+                    mimeType: 'video/webm;codecs=vp9',
+                    videoBitsPerSecond: 2500000
+                };
+                
+                // Fallback if vp9 not supported
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options.mimeType = 'video/webm;codecs=vp8';
+                }
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options.mimeType = 'video/webm';
+                }
+                
+                mediaRecorder = new MediaRecorder(remoteStream, options);
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                        recordedBytes += event.data.size;
+                        recordingSize.textContent = formatBytes(recordedBytes);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                    a.href = url;
+                    a.download = `remote-camera-${timestamp}.webm`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    showNotification('Recording saved: ' + a.download, 4000);
+                };
+                
+                mediaRecorder.start(1000); // Collect data every 1 second
+                isRecording = true;
+                recordStartTime = new Date();
+                recordTimer = setInterval(updateRecordingTimer, 1000);
+                
+                recordingStatus.textContent = 'Recording';
+                recordingIndicator.classList.add('active');
+                btnRecord.textContent = '⏹️ STOP REC';
+                btnRecord.style.background = 'linear-gradient(to right, #ff416c, #ff4b2b)';
+                
+                showNotification('Recording started', 2000);
+            } catch (error) {
+                console.error('Recording error:', error);
+                showNotification('Recording not supported: ' + error.message, 4000);
+            }
+        }
+        
+        function stopRecording() {
+            if (!isRecording || !mediaRecorder) return;
+            
+            mediaRecorder.stop();
+            isRecording = false;
+            
+            if (recordTimer) {
+                clearInterval(recordTimer);
+                recordTimer = null;
+            }
+            
+            recordingStatus.textContent = 'Idle';
+            recordingDuration.textContent = '00:00:00';
+            recordingSize.textContent = '0 MB';
+            recordingIndicator.classList.remove('active');
+            btnRecord.textContent = '⏺️ RECORD';
+            btnRecord.style.background = 'linear-gradient(to right, #ff6b6b, #ee5a6f)';
+            
+            showNotification('Recording stopped', 2000);
+        }
+        
+        // ==================== SNAPSHOT FUNCTION ====================
+        function takeSnapshot() {
+            if (!remoteVideo || !remoteVideo.srcObject) {
+                showNotification('No video to capture', 3000);
+                return;
+            }
+            
+            const canvas = document.createElement('canvas');
+            canvas.width = remoteVideo.videoWidth;
+            canvas.height = remoteVideo.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(remoteVideo, 0, 0);
+            
+            // Add timestamp if enabled
+            if (recordWithTimestamp.checked) {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString();
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(10, canvas.height - 40, 200, 35);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(timeStr, 15, canvas.height - 15);
+            }
+            
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                a.href = url;
+                a.download = `snapshot-${timestamp}.png`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showNotification('Snapshot saved: ' + a.download, 3000);
+            }, 'image/png');
+        }
+        
+        // ==================== STATISTICS FUNCTIONS ====================
+        function startStatisticsMonitoring() {
+            statsInterval = setInterval(async () => {
+                if (!activeCall || !activeCall.peerConnection) return;
+                
+                try {
+                    const stats = await activeCall.peerConnection.getStats();
+                    let inboundRtpStats = null;
+                    let videoStats = null;
+                    
+                    stats.forEach(report => {
+                        if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                            inboundRtpStats = report;
+                        }
+                    });
+                    
+                    if (inboundRtpStats) {
+                        // Calculate FPS
+                        const framesDecoded = inboundRtpStats.framesDecoded || 0;
+                        const frameCount = framesDecoded;
+                        const now = Date.now();
+                        const timeDiff = (now - lastStatsTime) / 1000;
+                        
+                        if (timeDiff > 0) {
+                            const fps = Math.round((frameCount - lastStatsTime) / timeDiff);
+                            statFps.textContent = Math.max(0, fps);
+                        }
+                        
+                        // Calculate bandwidth
+                        const bytesNow = inboundRtpStats.bytesReceived || 0;
+                        const bytesDiff = bytesNow - lastBytesReceived;
+                        const bandwidth = (bytesDiff * 8) / (timeDiff * 1000000); // Mbps
+                        statBandwidth.textContent = bandwidth.toFixed(2) + ' Mbps';
+                        
+                        // Resolution and codec
+                        const width = inboundRtpStats.frameWidth || 0;
+                        const height = inboundRtpStats.frameHeight || 0;
+                        if (width && height) {
+                            statResolution.textContent = `${width}x${height}`;
+                        }
+                        
+                        const codec = inboundRtpStats.mimeType || '-';
+                        statCodec.textContent = codec;
+                        
+                        lastBytesReceived = bytesNow;
+                        lastStatsTime = now;
+                    }
+                } catch (error) {
+                    console.error('Stats error:', error);
+                }
+            }, 1000);
+        }
+        
+        function stopStatisticsMonitoring() {
+            if (statsInterval) {
+                clearInterval(statsInterval);
+                statsInterval = null;
+            }
+        }
+        
+        // ==================== PEER INITIALIZATION ====================
+        function initPeer() {
+            viewerId = generateViewerId();
+            peer = new Peer(viewerId, PEER_CONFIG);
+            
+            peer.on('open', (id) => {
+                viewerIdValue.textContent = id;
+                updateStatus('Ready to connect', false);
+                btnStart.disabled = false;
+                
+                const baseUrl = window.location.href.replace(/\/[^\/]*$/, '');
+                const targetUrl = `${baseUrl}/target.html?viewer=${id}`;
+                connectionLink.textContent = targetUrl;
+                linkSection.style.display = 'block';
+                
+                showNotification(`Your ID: ${id}`);
+            });
+            
+            peer.on('connection', (connection) => {
+                conn = connection;
+                targetId = connection.peer;
+                targetIdValue.textContent = targetId;
+                setupDataConnection();
+                showNotification(`Target connected: ${targetId}`);
+            });
+            
+            peer.on('call', (call) => {
+                activeCall = call;
+                call.answer();
+                
+                call.on('stream', (stream) => {
+                    remoteStream = stream;
+                    remoteVideo.srcObject = stream;
+                    noSignal.style.display = 'none';
+                    cameraBadge.style.display = 'flex';
+                    
+                    streamStartTime = new Date();
+                    streamTimer = setInterval(updateStreamTimer, 1000);
+                    startStatisticsMonitoring();
+                    
+                    updateStatus('Streaming active', true);
+                    btnStop.disabled = false;
+                    btnSwitchCam.disabled = false;
+                    btnRecord.disabled = false;
+                    btnSnapshot.disabled = false;
+                    
+                    showNotification('Stream started successfully');
+                });
+                
+                call.on('close', () => {
+                    stopStream();
+                    showNotification('Stream closed by target');
+                });
+            });
+            
+            peer.on('error', (err) => {
+                console.error('Peer error:', err);
+                showNotification(`Error: ${err.type}`, 5000);
+                updateStatus(`Error: ${err.type}`, false);
+            });
+        }
+        
+        function setupDataConnection() {
+            if (!conn) return;
+            
+            conn.on('open', () => {
+                updateStatus('Connected to target', true);
+            });
+            
+            conn.on('data', (data) => {
+                console.log('Data from target:', data);
+                
+                if (data.type === 'target_ready') {
+                    targetId = data.targetId;
+                    targetIdValue.textContent = targetId;
+                    
+                    setTimeout(() => {
+                        initiateVideoCall();
+                    }, 1000);
+                } else if (data.type === 'camera_switched') {
+                    currentCameraType = data.camera.includes('Задняя') ? 'back' : 'front';
+                    cameraTypeSpan.textContent = currentCameraType === 'back' ? 'Back Camera' : 'Front Camera';
+                    showNotification(`Camera switched to ${currentCameraType}`);
+                }
+            });
+            
+            conn.on('close', () => {
+                stopStream();
+                showNotification('Target disconnected');
+            });
+        }
+        
+        function initiateVideoCall() {
+            if (!targetId || !peer) return;
+            
+            const call = peer.call(targetId, null);
+            activeCall = call;
+            
+            call.on('stream', (stream) => {
+                remoteStream = stream;
+                remoteVideo.srcObject = stream;
+                noSignal.style.display = 'none';
+                cameraBadge.style.display = 'flex';
+                
+                streamStartTime = new Date();
+                streamTimer = setInterval(updateStreamTimer, 1000);
+                startStatisticsMonitoring();
+                
+                updateStatus('Streaming active', true);
+                btnStop.disabled = false;
+                btnSwitchCam.disabled = false;
+                btnRecord.disabled = false;
+                btnSnapshot.disabled = false;
+                
+                showNotification('Stream started');
+            });
+            
+            call.on('close', () => {
+                stopStream();
+            });
+            
+            call.on('error', (err) => {
+                console.error('Call error:', err);
+                showNotification('Call error: ' + err.message, 5000);
+            });
+        }
+        
+        // ==================== STREAM CONTROL ====================
+        function startStream() {
+            if (!peer) {
+                initPeer();
+            }
+            
+            updateStatus('Waiting for target...', false);
+            btnStart.disabled = true;
+            showNotification('Send the link to target device');
+        }
+        
+        function stopStream() {
+            if (isRecording) {
+                stopRecording();
+            }
+            
+            if (activeCall) {
+                activeCall.close();
+                activeCall = null;
+            }
+            
+            if (remoteStream) {
+                remoteStream.getTracks().forEach(track => track.stop());
+                remoteStream = null;
+            }
+            
+            if (remoteVideo.srcObject) {
+                remoteVideo.srcObject = null;
+            }
+            
+            noSignal.style.display = 'block';
+            cameraBadge.style.display = 'none';
+            recordingIndicator.classList.remove('active');
+            
+            if (streamTimer) {
+                clearInterval(streamTimer);
+                streamTimer = null;
+            }
+            
+            stopStatisticsMonitoring();
+            
+            streamStartTime = null;
+            streamDuration.textContent = '00:00:00';
+            recordingStatus.textContent = 'Idle';
+            recordingDuration.textContent = '00:00:00';
+            recordingSize.textContent = '0 MB';
+            
+            updateStatus('Disconnected', false);
+            btnStart.disabled = false;
+            btnStop.disabled = true;
+            btnSwitchCam.disabled = true;
+            btnRecord.disabled = true;
+            btnSnapshot.disabled = true;
+            
+            if (conn && conn.open) {
+                conn.send({ type: 'disconnect' });
+            }
+            
+            showNotification('Stream stopped');
+        }
+        
+        function switchCamera() {
+            if (!conn || !conn.open) {
+                showNotification('No connection to target', 3000);
+                return;
+            }
+            
+            conn.send({
+                type: 'switch_camera',
+                timestamp: Date.now()
+            });
+            
+            showNotification('Switching camera...');
+        }
+        
+        function copyLinkToClipboard() {
+            const link = connectionLink.textContent;
+            
+            navigator.clipboard.writeText(link).then(() => {
+                showNotification('Link copied to clipboard!', 2000);
+            }).catch(err => {
+                console.error('Copy failed:', err);
+                showNotification('Failed to copy link', 3000);
+            });
+        }
+        
+        // ==================== EVENT LISTENERS ====================
+        btnStart.addEventListener('click', startStream);
+        btnStop.addEventListener('click', stopStream);
+        btnSwitchCam.addEventListener('click', switchCamera);
+        btnRecord.addEventListener('click', () => {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        });
+        btnSnapshot.addEventListener('click', takeSnapshot);
+        btnCopyLink.addEventListener('click', copyLinkToClipboard);
+        
+        btnSettingsOk.addEventListener('click', () => {
+            settingsModal.classList.remove('show');
+        });
+        
+        btnSettingsCancel.addEventListener('click', () => {
+            settingsModal.classList.remove('show');
+        });
+        
+        // ==================== INITIALIZATION ====================
+        window.addEventListener('load', () => {
+            initPeer();
+        });
+        
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && remoteStream) {
+                showNotification('Stream continues in background');
+            }
+        });
+    </script>
+</body>
+</html>

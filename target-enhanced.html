@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Streaming - Enhanced</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .permission-box {
+            border-radius: 20px;
+            padding: 40px;
+            background: white;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+        }
+        
+        .status { 
+            padding: 15px; 
+            margin: 20px 0; 
+            border-radius: 10px;
+            font-weight: bold;
+            background: #f8f9fa;
+        }
+        
+        .active { 
+            background: #d4edda; 
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        
+        .inactive { 
+            background: #fff3cd; 
+            color: #856404;
+            border: 2px solid #ffeaa7;
+        }
+        
+        .error { 
+            background: #f8d7da; 
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
+        button { 
+            padding: 18px 40px; 
+            font-size: 20px; 
+            margin: 15px;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            width: 80%;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        #btnAllow { 
+            background: linear-gradient(to right, #00b09b, #96c93d); 
+            color: white; 
+            margin-bottom: 30px;
+        }
+        
+        #btnAllow:hover { 
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 176, 155, 0.3);
+        }
+        
+        #btnDeny { 
+            background: linear-gradient(to right, #ff416c, #ff4b2b); 
+            color: white; 
+        }
+        
+        #btnDeny:hover { 
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(255, 65, 108, 0.3);
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        h2 {
+            color: #e74c3c;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+        
+        .info-box {
+            background: #e8f4fc;
+            border: 2px solid #3498db;
+            color: #2c3e50;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .connection-info {
+            background: #e8f6f3;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        #cameraPreview {
+            width: 100%;
+            max-width: 300px;
+            border-radius: 10px;
+            margin: 20px auto;
+            display: none;
+            border: 5px solid #3498db;
+            background: #000;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .viewer-id {
+            background: #34495e;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 18px;
+        }
+        
+        .settings-box {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        
+        .settings-box label {
+            display: block;
+            margin: 10px 0;
+            color: #2c3e50;
+        }
+        
+        .settings-box input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        
+        .audio-indicator {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 5px;
+            font-size: 12px;
+        }
+        
+        .encryption-badge {
+            display: inline-block;
+            background: #27ae60;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 5px;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 600px) {
+            .permission-box {
+                padding: 20px;
+            }
+            
+            button {
+                width: 100%;
+                padding: 15px;
+                font-size: 16px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            h2 {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="permission-box">
+        <div id="permissionScreen">
+            <h1>📹 Camera & Microphone Access Request</h1>
+            <h2>⚠️ IMPORTANT: Read before allowing</h2>
+            
+            <div class="info-box">
+                <p><strong>Viewer ID:</strong> <span id="viewerIdDisplay" class="viewer-id">Loading...</span></p>
+                <p><strong>Your ID:</strong> <span id="targetIdDisplay">Loading...</span></p>
+            </div>
+            
+            <div class="settings-box">
+                <h3 style="margin-top: 0; color: #2c3e50;">⚙️ Stream Settings</h3>
+                <label>
+                    <input type="checkbox" id="enableAudio" checked> Include Microphone Audio
+                </label>
+                <label>
+                    <input type="checkbox" id="enableEncryption" checked> Enable Encryption (Recommended)
+                </label>
+                <label>
+                    Quality: 
+                    <select id="streamQuality" style="margin-left: 10px; padding: 5px;">
+                        <option value="high">High (1080p)</option>
+                        <option value="medium" selected>Medium (720p)</option>
+                        <option value="low">Low (480p)</option>
+                    </select>
+                </label>
+            </div>
+            
+            <div class="status inactive" id="statusMessage">
+                🔄 Waiting for your decision...
+            </div>
+            
+            <div style="text-align: left; margin: 25px 0; font-size: 16px;">
+                <p><strong>By clicking "ALLOW", you agree to:</strong></p>
+                <ul>
+                    <li>✅ Provide <strong>direct access</strong> to your camera</li>
+                    <li>✅ <strong>Real-time streaming</strong> video</li>
+                    <li>✅ Viewer can <strong>switch cameras</strong></li>
+                    <li>✅ Viewer can <strong>stop streaming</strong></li>
+                    <li>✅ <strong>Microphone audio</strong> (if enabled)</li>
+                    <li>❌ <strong>You cannot stop</strong> streaming after allowing</li>
+                    <li>🔒 Connection is <strong>encrypted</strong>, no recording on server</li>
+                </ul>
+            </div>
+            
+            <button id="btnAllow">✅ ALLOW FOREVER</button>
+            <button id="btnDeny">❌ DENY ACCESS</button>
+            
+            <div style="margin-top: 30px; font-size: 14px; color: #7f8c8d;">
+                <p>After allowing, the page will work in the background.</p>
+                <p>Only the viewer can stop the stream.</p>
+            </div>
+        </div>
+        
+        <div id="activeScreen" class="hidden">
+            <h1 style="color: #27ae60;">✅ STREAMING ACTIVE</h1>
+            
+            <div class="status active" id="activeStatus">
+                📡 Connection established
+            </div>
+            
+            <video id="cameraPreview" autoplay playsinline muted></video>
+            
+            <div class="connection-info" id="connectionDetails">
+                <p><strong>Camera:</strong> <span id="currentCameraType">Back Camera</span></p>
+                <p><strong>Status:</strong> <span id="streamStatus">Active</span></p>
+                <p><strong>Viewer:</strong> <span id="viewerStatus">Connected</span></p>
+                <p>
+                    <span id="audioIndicator" class="audio-indicator" style="display: none;">🎤 Audio</span>
+                    <span class="encryption-badge">🔒 Encrypted</span>
+                </p>
+            </div>
+            
+            <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin: 20px 0;">
+                <p>⚠️ <strong>Streaming is active</strong></p>
+                <p>Only the viewer can stop viewing.</p>
+                <p>You can:</p>
+                <ul style="text-align: left;">
+                    <li>Close this page (streaming will stop)</li>
+                    <li>Lock the screen (streaming continues)</li>
+                    <li>Use other apps</li>
+                </ul>
+            </div>
+            
+            <div style="color: #e74c3c; font-weight: bold; padding: 15px; border: 2px dashed #e74c3c; border-radius: 10px;">
+                ⛔ NO STOP BUTTON<br>
+                Control is only with viewer
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
+    <script>
+        // ==================== ENCRYPTION UTILITIES ====================
+        class SimpleEncryption {
+            static generateKey() {
+                return Math.random().toString(36).substring(2, 15) + 
+                       Math.random().toString(36).substring(2, 15);
+            }
+            
+            static xorEncrypt(text, key) {
+                let result = '';
+                for (let i = 0; i < text.length; i++) {
+                    result += String.fromCharCode(
+                        text.charCodeAt(i) ^ key.charCodeAt(i % key.length)
+                    );
+                }
+                return btoa(result);
+            }
+            
+            static xorDecrypt(encoded, key) {
+                try {
+                    const text = atob(encoded);
+                    let result = '';
+                    for (let i = 0; i < text.length; i++) {
+                        result += String.fromCharCode(
+                            text.charCodeAt(i) ^ key.charCodeAt(i % key.length)
+                        );
+                    }
+                    return result;
+                } catch (e) {
+                    return null;
+                }
+            }
+        }
+        
+        // ==================== STATE VARIABLES ====================
+        const TEXTS = {
+            permission: {
+                waiting: "🔄 Waiting for decision...",
+                connecting: "📡 Connecting to server...",
+                connected: "✅ Connected",
+                startingCamera: "📷 Starting camera..."
+            },
+            active: {
+                streaming: "📹 Streaming active",
+                viewerConnected: "👁️ Viewer connected",
+                cameraActive: "✅ Camera working",
+                switchingCamera: "🔄 Switching camera..."
+            },
+            errors: {
+                cameraDenied: "❌ Camera access denied",
+                cameraError: "❌ Camera error",
+                connectionLost: "📡 Connection lost",
+                peerError: "⚠️ Connection error"
+            }
+        };
+        
+        // State
+        let peer = null;
+        let conn = null;
+        let localStream = null;
+        let currentCamera = 'environment';
+        let activeCall = null;
+        let isStreaming = false;
+        let encryptionEnabled = false;
+        let encryptionKey = null;
+        
+        // ==================== DOM ELEMENTS ====================
+        const permissionScreen = document.getElementById('permissionScreen');
+        const activeScreen = document.getElementById('activeScreen');
+        const statusMessage = document.getElementById('statusMessage');
+        const activeStatus = document.getElementById('activeStatus');
+        const viewerIdDisplay = document.getElementById('viewerIdDisplay');
+        const targetIdDisplay = document.getElementById('targetIdDisplay');
+        const cameraPreview = document.getElementById('cameraPreview');
+        const connectionDetails = document.getElementById('connectionDetails');
+        const currentCameraType = document.getElementById('currentCameraType');
+        const streamStatus = document.getElementById('streamStatus');
+        const viewerStatus = document.getElementById('viewerStatus');
+        const audioIndicator = document.getElementById('audioIndicator');
+        
+        const btnAllow = document.getElementById('btnAllow');
+        const btnDeny = document.getElementById('btnDeny');
+        const enableAudio = document.getElementById('enableAudio');
+        const enableEncryption = document.getElementById('enableEncryption');
+        const streamQuality = document.getElementById('streamQuality');
+        
+        // ==================== UTILITY FUNCTIONS ====================
+        function updateStatus(element, text, type = 'info') {
+            element.textContent = text;
+            element.className = 'status ' + 
+                (type === 'active' ? 'active' : 
+                 type === 'error' ? 'error' : 'inactive');
+        }
+        
+        function switchToActiveScreen() {
+            permissionScreen.classList.add('hidden');
+            activeScreen.classList.remove('hidden');
+            connectionDetails.style.display = 'block';
+            cameraPreview.style.display = 'block';
+        }
+        
+        function generateSimpleId() {
+            const words = ['sun', 'moon', 'star', 'wind', 'fire', 'water', 'earth', 'cloud'];
+            const word = words[Math.floor(Math.random() * words.length)];
+            const num = Math.floor(100 + Math.random() * 900);
+            return `${word}-${num}`;
+        }
+        
+        // ==================== INITIALIZATION ====================
+        function init() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const viewerIdFromUrl = urlParams.get('viewer');
+            
+            if (viewerIdFromUrl) {
+                viewerIdDisplay.textContent = viewerIdFromUrl;
+            } else {
+                viewerIdDisplay.textContent = 'Direct request';
+            }
+            
+            const targetId = generateSimpleId();
+            targetIdDisplay.textContent = targetId;
+            
+            updateStatus(statusMessage, TEXTS.permission.waiting, 'info');
+        }
+        
+        // ==================== STREAMING FUNCTIONS ====================
+        async function startStreaming() {
+            try {
+                updateStatus(statusMessage, TEXTS.permission.connecting, 'info');
+                
+                encryptionEnabled = enableEncryption.checked;
+                if (encryptionEnabled) {
+                    encryptionKey = SimpleEncryption.generateKey();
+                }
+                
+                // Initialize PeerJS
+                peer = new Peer(targetIdDisplay.textContent, {
+                    host: '0.peerjs.com',
+                    port: 443,
+                    secure: true,
+                    debug: 0
+                });
+                
+                peer.on('open', async (id) => {
+                    updateStatus(statusMessage, TEXTS.permission.connected, 'active');
+                    
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const viewerIdFromUrl = urlParams.get('viewer');
+                    
+                    if (viewerIdFromUrl) {
+                        conn = peer.connect(viewerIdFromUrl, {
+                            reliable: true,
+                            serialization: 'json'
+                        });
+                        
+                        conn.on('open', () => {
+                            console.log('Connected to viewer');
+                            
+                            // Send target ready with encryption info
+                            const message = {
+                                type: 'target_ready',
+                                targetId: id,
+                                encryption: encryptionEnabled,
+                                encryptionKey: encryptionEnabled ? encryptionKey : null,
+                                audioEnabled: enableAudio.checked
+                            };
+                            
+                            conn.send(message);
+                        });
+                        
+                        conn.on('data', handleViewerCommand);
+                    }
+                    
+                    // Start camera with selected quality
+                    await startCamera(currentCamera);
+                    
+                    switchToActiveScreen();
+                    updateStatus(activeStatus, TEXTS.active.streaming, 'active');
+                    
+                    if (enableAudio.checked) {
+                        audioIndicator.style.display = 'inline-block';
+                    }
+                    
+                    peer.on('call', handleIncomingCall);
+                });
+                
+                peer.on('error', (err) => {
+                    console.error('Peer error:', err);
+                    updateStatus(statusMessage, TEXTS.errors.peerError, 'error');
+                });
+                
+            } catch (error) {
+                console.error('Streaming error:', error);
+                updateStatus(statusMessage, TEXTS.errors.connectionLost, 'error');
+            }
+        }
+        
+        function handleIncomingCall(call) {
+            activeCall = call;
+            
+            if (localStream) {
+                call.answer(localStream);
+                updateStatus(activeStatus, TEXTS.active.viewerConnected, 'active');
+                viewerStatus.textContent = 'Connected';
+            }
+            
+            call.on('close', () => {
+                viewerStatus.textContent = 'Disconnected';
+            });
+        }
+        
+        function handleViewerCommand(data) {
+            console.log('Viewer command:', data);
+            
+            if (data.type === 'switch_camera') {
+                switchCamera();
+            } else if (data.type === 'disconnect') {
+                viewerStatus.textContent = 'Disconnected by viewer';
+            }
+        }
+        
+        async function startCamera(cameraType = 'environment') {
+            try {
+                updateStatus(statusMessage, TEXTS.permission.startingCamera, 'info');
+                
+                // Get quality settings
+                let width = 1280, height = 720;
+                if (streamQuality.value === 'high') {
+                    width = 1920;
+                    height = 1080;
+                } else if (streamQuality.value === 'low') {
+                    width = 640;
+                    height = 480;
+                }
+                
+                const constraints = {
+                    video: {
+                        facingMode: cameraType,
+                        width: { ideal: width },
+                        height: { ideal: height }
+                    },
+                    audio: enableAudio.checked
+                };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                cameraPreview.srcObject = localStream;
+                
+                const cameraName = cameraType === 'environment' ? 'Back Camera' : 'Front Camera';
+                currentCameraType.textContent = cameraName;
+                streamStatus.textContent = 'Active';
+                
+                isStreaming = true;
+                return true;
+                
+            } catch (error) {
+                console.error('Camera error:', error);
+                updateStatus(statusMessage, TEXTS.errors.cameraError, 'error');
+                return false;
+            }
+        }
+        
+        async function switchCamera() {
+            if (!localStream) return;
+            
+            currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
+            updateStatus(activeStatus, TEXTS.active.switchingCamera, 'info');
+            
+            localStream.getTracks().forEach(track => track.stop());
+            
+            const success = await startCamera(currentCamera);
+            
+            if (success && activeCall) {
+                const videoTrack = localStream.getVideoTracks()[0];
+                const sender = activeCall.peerConnection.getSenders().find(s => 
+                    s.track && s.track.kind === 'video'
+                );
+                if (sender) {
+                    sender.replaceTrack(videoTrack);
+                }
+                
+                // Replace audio track if available
+                if (enableAudio.checked) {
+                    const audioTrack = localStream.getAudioTracks()[0];
+                    const audioSender = activeCall.peerConnection.getSenders().find(s => 
+                        s.track && s.track.kind === 'audio'
+                    );
+                    if (audioSender && audioTrack) {
+                        audioSender.replaceTrack(audioTrack);
+                    }
+                }
+            }
+            
+            updateStatus(activeStatus, TEXTS.active.streaming, 'active');
+        }
+        
+        // ==================== EVENT LISTENERS ====================
+        btnAllow.addEventListener('click', async () => {
+            btnAllow.disabled = true;
+            btnDeny.disabled = true;
+            btnAllow.textContent = "⏳ Starting...";
+            
+            if (!confirm('ARE YOU SURE?\n\nAfter allowing:\n• You CANNOT stop streaming\n• Only the viewer controls viewing\n• Closing this page will stop streaming')) {
+                btnAllow.disabled = false;
+                btnDeny.disabled = false;
+                btnAllow.textContent = "✅ ALLOW FOREVER";
+                return;
+            }
+            
+            await startStreaming();
+        });
+        
+        btnDeny.addEventListener('click', () => {
+            if (confirm('Deny access and close this page?')) {
+                window.close();
+            }
+        });
+        
+        window.addEventListener('beforeunload', (e) => {
+            if (isStreaming) {
+                if (!confirm('Streaming is active. Closing will stop it.\n\nClose?')) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
+                }
+            }
+        });
+        
+        // Keepalive ping
+        setInterval(() => {
+            if (conn && conn.open) {
+                conn.send({ type: 'ping', timestamp: Date.now() });
+            }
+        }, 15000);
+        
+        // ==================== INITIALIZATION ====================
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

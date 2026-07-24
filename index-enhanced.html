@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Camera - Enhanced Edition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-size: 3em;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .version-badge {
+            display: inline-block;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 40px 0;
+        }
+        
+        .feature-card {
+            background: linear-gradient(135deg, #667eea15, #764ba215);
+            border: 2px solid #667eea30;
+            border-radius: 15px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: #667eea;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+        }
+        
+        .feature-icon {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .feature-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .feature-desc {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 40px 0;
+        }
+        
+        button {
+            padding: 20px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-viewer {
+            background: linear-gradient(to right, #00b09b, #96c93d);
+            color: white;
+        }
+        
+        .btn-target {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .info-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            border-left: 5px solid #667eea;
+        }
+        
+        .info-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .info-section p {
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .comparison-table th {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: bold;
+        }
+        
+        .comparison-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .check {
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        .cross {
+            color: #e74c3c;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+            color: #999;
+            font-size: 0.9em;
+        }
+        
+        .links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .links a:hover {
+            color: #764ba2;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .features {
+                grid-template-columns: 1fr;
+            }
+            
+            .comparison-table {
+                font-size: 0.9em;
+            }
+            
+            .comparison-table th,
+            .comparison-table td {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎥 Remote Camera</h1>
+            <p class="subtitle">Advanced Peer-to-Peer Video Streaming</p>
+            <span class="version-badge">✨ Enhanced Edition v2.0.0</span>
+        </header>
+        
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">📹</div>
+                <div class="feature-title">Video Recording</div>
+                <div class="feature-desc">Record streaming video in WebM format with multiple quality options</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📷</div>
+                <div class="feature-title">Snapshots</div>
+                <div class="feature-desc">Capture high-quality screenshots with optional timestamp overlay</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <div class="feature-title">Live Statistics</div>
+                <div class="feature-desc">Monitor FPS, bandwidth, resolution, and codec in real-time</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🎤</div>
+                <div class="feature-title">Audio Support</div>
+                <div class="feature-desc">Include microphone audio in your streaming</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <div class="feature-title">Encryption</div>
+                <div class="feature-desc">Optional end-to-end encryption for secure communication</div>
+            </div>
+            
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <div class="feature-title">P2P Connection</div>
+                <div class="feature-desc">Direct peer-to-peer streaming without server intermediary</div>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn-viewer" onclick="window.location.href='viewer-enhanced.html'">
+                👁️ I Want to Watch
+            </button>
+            <button class="btn-target" onclick="window.location.href='target-enhanced.html'">
+                📱 I Want to Share
+            </button>
+        </div>
+        
+        <div class="info-section">
+            <h2>How It Works</h2>
+            <p><strong>Step 1:</strong> The viewer opens the application and clicks "START STREAM"</p>
+            <p><strong>Step 2:</strong> A unique link is generated and sent to the target device</p>
+            <p><strong>Step 3:</strong> The target opens the link and grants camera access</p>
+            <p><strong>Step 4:</strong> The viewer receives the live camera feed and can record, take snapshots, and monitor statistics</p>
+        </div>
+        
+        <div class="info-section">
+            <h2>Feature Comparison</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Original (v1.0)</th>
+                        <th>Enhanced (v2.0)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Video Streaming</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Camera Switching</td>
+                        <td><span class="check">✓</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Video Recording</td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Snapshot Capture</td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Live Statistics</td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Audio Support</td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Encryption</td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td>Quality Settings</td>
+                        <td><span class="cross">✗</span></td>
+                        <td><span class="check">✓</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="info-section">
+            <h2>System Requirements</h2>
+            <p><strong>Browser Support:</strong> Chrome 90+, Firefox 88+, Safari 14+, Edge 90+, Opera 76+</p>
+            <p><strong>Bandwidth:</strong> 2-4 Mbps recommended for Medium quality (720p)</p>
+            <p><strong>Devices:</strong> Works on desktop, tablet, and mobile devices with camera access</p>
+        </div>
+        
+        <div class="info-section">
+            <h2>Security & Privacy</h2>
+            <p>Remote Camera uses peer-to-peer technology, meaning your video stream goes directly between devices without passing through our servers. Optional encryption ensures your data stays private. No recordings are stored on any server - everything stays on your device.</p>
+        </div>
+        
+        <footer>
+            <p>Remote Camera - Enhanced Edition v2.0.0 | Open Source Project</p>
+            <div class="links">
+                <a href="README.md">Documentation</a>
+                <a href="CHANGELOG.md">Changelog</a>
+                <a href="https://github.com/purr1903/remote_camera">GitHub</a>
+            </div>
+        </footer>
+    </div>
+</body>
+</html>
