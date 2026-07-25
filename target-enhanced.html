@@ -148,7 +148,18 @@
                 cameraPreview.srcObject = localStream;
 
                 // Setup PeerJS
-                peer = new Peer(targetId, { host: '0.peerjs.com', port: 443, secure: true, debug: 0 });
+                peer = new Peer(targetId, { 
+                    host: '0.peerjs.com', 
+                    port: 443, 
+                    secure: true, 
+                    debug: 1,
+                    config: {
+                        'iceServers': [
+                            { 'urls': 'stun:stun.l.google.com:19302' },
+                            { 'urls': 'stun:stun1.l.google.com:19302' }
+                        ]
+                    }
+                });
                 
                 peer.on('open', (id) => {
                     if (viewerId) {

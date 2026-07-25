@@ -611,7 +611,14 @@
             host: '0.peerjs.com',
             port: 443,
             secure: true,
-            pingInterval: 5000
+            pingInterval: 5000,
+            debug: 1,
+            config: {
+                'iceServers': [
+                    { 'urls': 'stun:stun.l.google.com:19302' },
+                    { 'urls': 'stun:stun1.l.google.com:19302' }
+                ]
+            }
         };
         
         // ==================== UTILITY FUNCTIONS ====================
@@ -898,10 +905,18 @@
                 call.answer();
                 
                 call.on('stream', (stream) => {
-                    console.log('Stream diterima!');
+                    console.log('Stream diterima!', stream);
                     remoteStream = stream;
+                    
+                    // Force play
                     remoteVideo.srcObject = stream;
-                    noSignal.style.display = 'none';
+                    remoteVideo.muted = true; // Bypass autoplay policy
+                    
+                    remoteVideo.onloadedmetadata = () => {
+                        remoteVideo.play().catch(e => console.error("Auto-play blocked:", e));
+                        noSignal.style.display = 'none';
+                        cameraBadge.style.display = 'flex';
+                    };
                     cameraBadge.style.display = 'flex';
                     
                     streamStartTime = new Date();
