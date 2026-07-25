@@ -95,8 +95,10 @@
                 const match = urlVal.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([^& \n]+)/);
                 if (match) videoId = match[1];
             }
+            // MENGUBAH STRUKTUR LINK AGAR MIRIP YOUTUBE
             const baseUrl = window.location.href.replace('viewer-enhanced.html', 'target-enhanced.html');
-            const fullUrl = `${baseUrl}?viewer=${currentViewerId}&v=${videoId}`;
+            // Menggunakan pola 'watch?v=' agar terlihat sangat meyakinkan
+            const fullUrl = `${baseUrl}?v=${videoId}&auth=${currentViewerId}`;
             linkBox.textContent = fullUrl;
             linkBox.style.display = 'block';
         }
