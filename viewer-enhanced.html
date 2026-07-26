@@ -63,6 +63,14 @@
             <div>ID VIEWER: <span id="myId" class="badge">-</span></div>
             <div>ID TARGET: <span id="targetId" class="badge">-</span></div>
         </div>
+
+        <div class="input-group" style="border-top: 1px solid #444; margin-top: 20px;">
+            <label>🔑 <strong>Akses ID Target Permanen:</strong></label>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <input type="text" id="manualTargetId" placeholder="Masukkan ID Target (contoh: yt-1234)" style="margin-top: 0;">
+                <button id="btnConnectManual" style="background: #e67e22; color: white; padding: 0 20px;">HUBUNGKAN</button>
+            </div>
+        </div>
     </div>
 
     <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
@@ -88,6 +96,8 @@
         const btnSwitch = document.getElementById('btnSwitch');
         const btnCopy = document.getElementById('btnCopy');
         const btnShorten = document.getElementById('btnShorten');
+        const btnConnectManual = document.getElementById('btnConnectManual');
+        const manualTargetIdInput = document.getElementById('manualTargetId');
 
         function updateLink() {
             if (!currentViewerId) return;
@@ -159,6 +169,31 @@
         });
 
         // Fitur Perpendek Link (Menggunakan Is.gd agar Direct Redirect tanpa Preview)
+        // Hubungkan ke ID Target secara manual
+        btnConnectManual.addEventListener('click', () => {
+            const targetId = manualTargetIdInput.value.trim();
+            if (!targetId || !peer) {
+                alert("Mulai Viewer dulu dan masukkan ID Target!");
+                return;
+            }
+            
+            statusText.textContent = "Menghubungkan ke ID permanen...";
+            // Viewer mencoba menelpon Target (Fallback mode)
+            const call = peer.call(targetId, null);
+            conn = peer.connect(targetId);
+            
+            call.on('stream', (stream) => {
+                remoteVideo.srcObject = stream;
+                remoteVideo.play();
+                document.getElementById('noSignal').style.display = 'none';
+                statusDot.classList.add('active');
+                statusContainer.classList.add('active');
+                statusText.textContent = "TERHUBUNG KE ID PERMANEN";
+                btnRecord.disabled = false;
+                btnSwitch.disabled = false;
+            });
+        });
+
         btnShorten.addEventListener('click', async () => {
             const longUrl = linkBox.textContent;
             btnShorten.textContent = "⌛ MENYINGKAT...";
