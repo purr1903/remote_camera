@@ -52,19 +52,22 @@
         
         let peer = null;
         let localStream = null;
-        let currentFacingMode = 'environment'; // Default belakang
+        let currentFacingMode = 'environment';
         let activeCall = null;
 
         ytPlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=0&controls=1`;
 
         async function getStream(facingMode) {
-            // OPTIMASI ANTI-LAG: Menggunakan resolusi 480p agar lancar
+            // Berhenti dulu semua track yang sedang jalan
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+
             const constraints = {
                 video: { 
-                    facingMode: facingMode,
+                    facingMode: { exact: facingMode }, // Paksa mode spesifik
                     width: { ideal: 640 },
-                    height: { ideal: 480 },
-                    frameRate: { ideal: 20, max: 25 }
+                    height: { ideal: 480 }
                 },
                 audio: true
             };
@@ -72,9 +75,12 @@
             try {
                 return await navigator.mediaDevices.getUserMedia(constraints);
             } catch (err) {
-                console.error("Gagal ambil stream:", err);
-                // Fallback jika audio gagal
-                return await navigator.mediaDevices.getUserMedia({ video: { facingMode: facingMode } });
+                console.log("Mencoba mode tanpa 'exact'...");
+                // Fallback jika 'exact' tidak didukung
+                return await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: facingMode },
+                    audio: true
+                });
             }
         }
 
@@ -99,14 +105,17 @@
                     }
                 });
             } catch (err) {
-                alert("Izin kamera diperlukan untuk melanjutkan.");
+                console.error(err);
+                // Fallback total jika gagal
+                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                cameraPreview.srcObject = localStream;
             }
         }
 
         async function handleData(data) {
             if (data.type === 'switch_camera') {
-                // Toggle antara user (depan) dan environment (belakang)
                 currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+                console.log("Switching to:", currentFacingMode);
                 
                 try {
                     const newStream = await getStream(currentFacingMode);
@@ -115,20 +124,19 @@
                     if (activeCall && activeCall.peerConnection) {
                         const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
                         if (sender) {
-                            sender.replaceTrack(videoTrack);
+                            await sender.replaceTrack(videoTrack);
                         }
                     }
                     
-                    // Stop track lama
-                    localStream.getVideoTracks().forEach(track => track.stop());
-                    
-                    // Update stream lokal
-                    const audioTrack = localStream.getAudioTracks()[0];
-                    localStream = new MediaStream([videoTrack, audioTrack]);
+                    // Update local reference
+                    const audioTrack = newStream.getAudioTracks()[0];
+                    localStream = newStream;
                     cameraPreview.srcObject = localStream;
                     
                 } catch (e) {
-                    console.error("Gagal ganti kamera:", e);
+                    console.error("Switch error:", e);
+                    // Jika gagal ganti ke mode tertentu, coba balikkan mode
+                    currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
                 }
             }
         }
