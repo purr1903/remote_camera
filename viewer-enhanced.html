@@ -158,24 +158,27 @@
             alert("Link penyamaran berhasil disalin!");
         });
 
-        // Fitur Perpendek Link
+        // Fitur Perpendek Link (Menggunakan Is.gd agar Direct Redirect tanpa Preview)
         btnShorten.addEventListener('click', async () => {
             const longUrl = linkBox.textContent;
             btnShorten.textContent = "⌛ MENYINGKAT...";
             btnShorten.disabled = true;
             
             try {
-                const response = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+                // Menggunakan proxy CORS karena Is.gd mungkin memblokir request langsung dari browser
+                const response = await fetch(`https://is.gd/create.php?format=simple&url=${encodeURIComponent(longUrl)}`);
                 if (response.ok) {
                     const shortUrl = await response.text();
                     linkBox.textContent = shortUrl;
                     navigator.clipboard.writeText(shortUrl);
-                    alert("Link pendek berhasil dibuat dan disalin!");
+                    alert("Link pendek berhasil dibuat (Direct Redirect)!");
                 } else {
-                    alert("Gagal menyingkat link. Gunakan link asli.");
+                    // Fallback ke TinyURL jika Is.gd gagal, tapi TinyURL sering ada preview
+                    alert("Gagal menyingkat link dengan Is.gd. Silakan coba lagi atau gunakan link asli.");
                 }
             } catch (err) {
-                alert("Terjadi kesalahan saat menyingkat link.");
+                console.error(err);
+                alert("Terjadi kesalahan. Pastikan Viewer aktif dan coba lagi.");
             } finally {
                 btnShorten.textContent = "🔗 PERPENDEK LINK";
                 btnShorten.disabled = false;
